@@ -27,7 +27,7 @@ async def get_index(request: Request):
 
 
 @app.post('/search/', response_class=JSONResponse)
-async def search(q: str = Form()) -> dict[str, str | int]:
+async def search(q: str = Form()) -> dict[str, str | int | list]:
     if not q:
         not_question()
 
@@ -53,7 +53,7 @@ async def search(q: str = Form()) -> dict[str, str | int]:
                 temp_results_rank.append(temp_results[index])
             return {
                 'status': 1,
-                'response': temp_results_rank
+                'response': str(temp_results_rank)
             }
 
     logger.info('数据不存在，开始爬')
@@ -83,12 +83,12 @@ async def search(q: str = Form()) -> dict[str, str | int]:
         temp_results_rank.append(temp_results[index])
     return {
         'status': 1,
-        'response': temp_results_rank
+        'response': str(temp_results_rank)
     }
 
 
 if __name__ == "__main__":
-    mongodb.creat_index()
+    # mongodb.creat_index()
     config = uvicorn.Config("server:app", port=fastapi_port, log_level="info")
     server = uvicorn.Server(config)
     server.run()
