@@ -1,13 +1,9 @@
 import time
 import pymongo
-from config import mongodb_host, mongodb_port
 from typing import Any, Mapping, Callable
 from pymongo.cursor import Cursor
 from loguru import logger
-
-client = pymongo.MongoClient(host=mongodb_host, port=mongodb_port)
-db = client['datas']
-col = db['sites']
+from database import MongoDB
 
 
 def cost_time(func: Callable) -> Callable:
@@ -21,7 +17,7 @@ def cost_time(func: Callable) -> Callable:
 
 
 @cost_time
-def save_data(datas: list) -> None:
+def save_data(datas: list, col: pymongo.MongoClient) -> None:
     if len(datas) == 0:
         logger.info('保存数据时所接受的列表为空')
         return
@@ -29,7 +25,7 @@ def save_data(datas: list) -> None:
 
 
 @cost_time
-def del_repeat() -> None:
+def del_repeat(col: pymongo.MongoClient) -> None:
     pipeline = [
         {
             '$group': {
@@ -51,7 +47,8 @@ def del_repeat() -> None:
 
 
 @cost_time
-def delete_keywords_and_description(description: str = "", word: str = "", title: str = "") -> None:
+def delete_keywords_and_description(col: pymongo.MongoClient, description: str = "", word: str = "",
+                                    title: str = "") -> None:
     query = {
         "$and": [
             {"description": {"$eq": description}},
@@ -64,7 +61,7 @@ def delete_keywords_and_description(description: str = "", word: str = "", title
 
 
 @cost_time
-def search_data(text: str) -> Cursor[Mapping[str, Any]]:
+def search_data(text: str, col: pymongo.MongoClient) -> Cursor[Mapping[str, Any]]:
     query = {
         "$or": [
             {"word": {"$regex": text, "$options": "i"}},
@@ -77,32 +74,12 @@ def search_data(text: str) -> Cursor[Mapping[str, Any]]:
 
 
 @cost_time
-def creat_index() -> None:
+def creat_index(col: pymongo.MongoClient) -> None:
     index = [('description', pymongo.ASCENDING), ('word', pymongo.ASCENDING), ('title', pymongo.ASCENDING)]
     col.create_index(index)
 
 
-'''
-def get_response_from_bfs() -> None:
-    with open('./temp/bfs.txt', 'r', encoding='utf-8') as f:
-        texts = f.readlines()
-    for text in texts:
-        text = text.replace('\n', '')
-        if 'wiki' in text and '.org' in text:  # 剔除维基百科链接
-            continue
-        if not text.startswith('http'):
-            continue
-        try:
-            text = 'http' + text.split('http')[2]  # 获取到的链接存在一点问题，暂时用这个方法解决
-        except IndexError:
-            pass
-        data = spider.get_keywords_and_description(text)
-        if data is None:
-            continue
-        else:
-            save_data(data)
-'''
-
 if __name__ == '__main__':
-    del_repeat()
+    with MongoDB() as db:
+        del_repeat(db.col)
     # threading.Thread(target=get_response_from_bfs).start()
