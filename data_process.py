@@ -1,7 +1,10 @@
-from config import stop_words
 from typing import Any, Union
+
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+
+from config import stop_words
+
 
 def tfidf(texts: list, querys: list) -> Union[Any, None]:
     vectorizer = TfidfVectorizer()

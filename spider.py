@@ -1,15 +1,17 @@
 import pickle
 import random
 import time
-import requests
-import config
-import mongodb
 from collections import deque
 from typing import Union, Any
+
+import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 from loguru import logger
 from lxml import etree
+
+import config
+import mongodb
 
 headers = {
     'User-Agent': UserAgent().edge

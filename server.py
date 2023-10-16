@@ -1,14 +1,16 @@
-import uvicorn
-import mongodb
-import spider
 import os
-import data_process
+
 import jieba
-from config import fastapi_port
+import uvicorn
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from loguru import logger
+
+import data_process
+import mongodb
+import spider
+from config import fastapi_port
 from database import MongoDB
 
 app = FastAPI()

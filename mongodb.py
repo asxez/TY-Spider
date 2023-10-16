@@ -1,8 +1,10 @@
 import time
-import pymongo
 from typing import Any, Mapping, Callable
-from pymongo.cursor import Cursor
+
+import pymongo
 from loguru import logger
+from pymongo.cursor import Cursor
+
 from database import MongoDB
 
 
