@@ -4,6 +4,7 @@ import requests
 from loguru import logger
 
 import config
+import error
 
 
 class RobotsParser:
@@ -17,7 +18,7 @@ class RobotsParser:
             res = requests.get(url, headers={'user-agent': self.user_agent})
             res.raise_for_status()
             return res.text
-        except requests.RequestException as e:
+        except error.RequestError as e:
             logger.error(f'获取robots.txt文件时出错：{e}')
             return ''
 

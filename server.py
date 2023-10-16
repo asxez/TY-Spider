@@ -10,6 +10,7 @@ from loguru import logger
 import data_process
 import mongodb
 import spider
+import error
 from config import fastapi_port
 from database import MongoDB
 
@@ -33,6 +34,7 @@ async def get_index(request: Request):
 async def search(q: str = Form()) -> dict[str, str | int]:
     with MongoDB() as db:
         col = db.col
+
         if not q:
             not_question()
 
@@ -64,7 +66,7 @@ async def search(q: str = Form()) -> dict[str, str | int]:
         logger.info('数据不存在，开始爬')
         try:
             os.makedirs('./temp/')
-        except OSError:
+        except error.Error:
             pass
         with open('./temp/q.txt', 'a', encoding='utf-8') as f2:
             f2.write(f'{q} ')
