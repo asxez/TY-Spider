@@ -6,15 +6,15 @@ from typing import Union, Any
 
 import requests
 from bs4 import BeautifulSoup
-from fake_useragent import UserAgent
 from loguru import logger
 from lxml import etree
 
 import config
 import mongodb
+from robots import RobotsParser
 
 headers = {
-    'User-Agent': UserAgent().edge
+    'User-Agent': config.engine_name_en
 }
 
 
@@ -162,39 +162,46 @@ def bfs(start: str, target_depth: int = 2) -> None:
     # get = set()
     # queue = deque([(start, 0)])  # 存储(URL, 深度)的队列
     visited, get, queue = load_bfs_state() or (set(), set(), deque([(start, 0)]))
+    robots_parser = RobotsParser(user_agent=config.engine_name_en)
+
     while queue:
         url, depth = queue.popleft()
-        if depth > target_depth:
-            break
-        if url in visited:
+
+        if robots_parser.can_crawl(url):
+            if depth > target_depth:
+                break
+            if url in visited:
+                continue
+
+            visited.add(url)
+            logger.info(f"深度：{depth}, 链接：{url}")
+
+            links = get_links_from_url(url)
+            for link in links:
+                if link.startswith('/'):
+                    link = start + link
+                try:
+                    link = 'http' + link.split('http')[2]  # 获取到的链接存在一点问题，暂时用这个方法解决
+                except IndexError:
+                    pass
+                if link in get:
+                    continue
+                get.add(link)
+                queue.append((link, depth + 1))
+                if ('wiki' in link and '.org' in link) or (not link.startswith('http')):  # 去除维基百科和非链接
+                    continue
+                data = get_keywords_and_description(link)
+                if data is None:
+                    continue
+                else:
+                    mongodb.save_data(data)
+                # with open('./temp/bfs.txt', 'a', encoding='utf-8') as f:
+                #   f.write(f'{link}\n')
+            save_bfs_state(visited, get, queue)
+            time.sleep(random.uniform(2.0, 3.0))
+        else:
+            logger.warning(f'{url}不允许爬')
             continue
-
-        visited.add(url)
-        logger.info(f"深度：{depth}, 链接：{url}")
-
-        links = get_links_from_url(url)
-        for link in links:
-            if link.startswith('/'):
-                link = start + link
-            try:
-                link = 'http' + link.split('http')[2]  # 获取到的链接存在一点问题，暂时用这个方法解决
-            except IndexError:
-                pass
-            if link in get:
-                continue
-            get.add(link)
-            queue.append((link, depth + 1))
-            if ('wiki' in link and '.org' in link) or (not link.startswith('http')):  # 去除维基百科和非链接
-                continue
-            data = get_keywords_and_description(link)
-            if data is None:
-                continue
-            else:
-                mongodb.save_data(data)
-            # with open('./temp/bfs.txt', 'a', encoding='utf-8') as f:
-            #   f.write(f'{link}\n')
-        save_bfs_state(visited, get, queue)
-        time.sleep(random.uniform(2.0, 3.0))
 
 
 if __name__ == '__main__':
