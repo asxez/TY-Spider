@@ -7,12 +7,12 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 
-import data_process
-import mongodb
-import spider
-import error
 from config import fastapi_port
+from data_process import remove_stop_words, tfidf
 from database import MongoDB
+from error import Error
+from mongodb import search_data, save_data
+from spider import get_bing_response, get_other_page_response, parse_page_url, parse_bing_response
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -39,7 +39,7 @@ async def search(q: str = Form()) -> dict[str, str | int]:
             not_question()
 
         list_question = jieba.lcut(q)
-        list_question = data_process.remove_stop_words(list_question)
+        list_question = remove_stop_words(list_question)
         temp_results = []
         temp_results_rank = []
 
@@ -49,12 +49,12 @@ async def search(q: str = Form()) -> dict[str, str | int]:
             if str(q) in text:
                 logger.info('数据存在，开始检索')
                 for question in list_question:
-                    results = mongodb.search_data(question, col)
+                    results = search_data(question, col)
                     for result in results:
                         temp_results.append(result)
 
                 texts = [doc["title"] + " " + doc["description"] + " " + doc["word"] for doc in temp_results]
-                ranked_indices = data_process.tfidf(texts, list_question)
+                ranked_indices = tfidf(texts, list_question)
 
                 for rank, index in enumerate(ranked_indices):
                     temp_results_rank.append(temp_results[index])
@@ -66,25 +66,25 @@ async def search(q: str = Form()) -> dict[str, str | int]:
         logger.info('数据不存在，开始爬')
         try:
             os.makedirs('./temp/')
-        except error.Error:
+        except Error:
             pass
         with open('./temp/q.txt', 'a', encoding='utf-8') as f2:
             f2.write(f'{q} ')
 
-        bing_res = spider.get_bing_response(q)
-        datas = spider.parse_bing_response(bing_res)
-        mongodb.save_data(datas, col)
-        datas = spider.get_other_page_response(spider.parse_page_url(bing_res))
+        bing_res = get_bing_response(q)
+        datas = parse_bing_response(bing_res)
+        save_data(datas, col)
+        datas = get_other_page_response(parse_page_url(bing_res))
         for data in datas:
-            mongodb.save_data(data, col)
+            save_data(data, col)
 
         for question in list_question:
-            results = mongodb.search_data(question, col)
+            results = search_data(question, col)
             for result in results:
                 temp_results.append(result)
 
         texts = [doc["title"] + " " + doc["description"] + " " + doc["word"] for doc in temp_results]
-        ranked_indices = data_process.tfidf(texts, list_question)
+        ranked_indices = tfidf(texts, list_question)
 
         for rank, index in enumerate(ranked_indices):
             temp_results_rank.append(temp_results[index])

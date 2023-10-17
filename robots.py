@@ -3,12 +3,12 @@ from urllib.parse import urljoin, urlparse
 import requests
 from loguru import logger
 
-import config
-import error
+from config import engine_name_en
+from error import RequestError
 
 
 class RobotsParser:
-    def __init__(self, user_agent: str = config.engine_name_en):
+    def __init__(self, user_agent: str = engine_name_en):
         self.user_agent = user_agent
         self.rules = {}
 
@@ -18,7 +18,7 @@ class RobotsParser:
             res = requests.get(url, headers={'user-agent': self.user_agent})
             res.raise_for_status()
             return res.text
-        except error.RequestError as e:
+        except RequestError as e:
             logger.error(f'获取robots.txt文件时出错：{e}')
             return ''
 

@@ -1,8 +1,8 @@
 import time
 from typing import Any, Mapping, Callable
 
-import pymongo
 from loguru import logger
+from pymongo import MongoClient, ASCENDING
 from pymongo.cursor import Cursor
 
 from database import MongoDB
@@ -19,7 +19,7 @@ def cost_time(func: Callable) -> Callable:
 
 
 @cost_time
-def save_data(datas: list, col: pymongo.MongoClient) -> None:
+def save_data(datas: list, col: MongoClient) -> None:
     if len(datas) == 0:
         logger.info('保存数据时所接受的列表为空')
         return
@@ -27,7 +27,7 @@ def save_data(datas: list, col: pymongo.MongoClient) -> None:
 
 
 @cost_time
-def del_repeat(col: pymongo.MongoClient) -> None:
+def del_repeat(col: MongoClient) -> None:
     pipeline = [
         {
             '$group': {
@@ -49,7 +49,7 @@ def del_repeat(col: pymongo.MongoClient) -> None:
 
 
 @cost_time
-def delete_keywords_and_description(col: pymongo.MongoClient, description: str = "", word: str = "",
+def delete_keywords_and_description(col: MongoClient, description: str = "", word: str = "",
                                     title: str = "") -> None:
     query = {
         "$and": [
@@ -63,7 +63,7 @@ def delete_keywords_and_description(col: pymongo.MongoClient, description: str =
 
 
 @cost_time
-def search_data(text: str, col: pymongo.MongoClient) -> Cursor[Mapping[str, Any]]:
+def search_data(text: str, col: MongoClient) -> Cursor[Mapping[str, Any]]:
     query = {
         "$or": [
             {"word": {"$regex": text, "$options": "i"}},
@@ -76,8 +76,8 @@ def search_data(text: str, col: pymongo.MongoClient) -> Cursor[Mapping[str, Any]
 
 
 @cost_time
-def creat_index(col: pymongo.MongoClient) -> None:
-    index = [('description', pymongo.ASCENDING), ('word', pymongo.ASCENDING), ('title', pymongo.ASCENDING)]
+def creat_index(col: MongoClient) -> None:
+    index = [('description', ASCENDING), ('word', ASCENDING), ('title', ASCENDING)]
     col.create_index(index)
 
 

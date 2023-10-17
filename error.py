@@ -1,4 +1,4 @@
-import requests
+from requests import RequestException
 
 
 class Error(Exception):
@@ -11,6 +11,6 @@ class IIndexError(Error):
     pass
 
 
-class RequestError(requests.exceptions.RequestException):
+class RequestError(RequestException):
     def __init__(self, message):
         super().__init__(message)

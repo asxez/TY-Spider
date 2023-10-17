@@ -1,5 +1,5 @@
-import pymongo
 from loguru import logger
+from pymongo import MongoClient
 
 from config import mongodb_host, mongodb_port
 
@@ -12,7 +12,7 @@ class MongoDB:
         self.closed = False
 
     def __enter__(self):
-        self.client = pymongo.MongoClient(host=mongodb_host, port=mongodb_port)
+        self.client = MongoClient(host=mongodb_host, port=mongodb_port)
         self.db = self.client['datas']
         self.col = self.db['sites']
         return self

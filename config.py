@@ -3,7 +3,7 @@ author = 'asxe'
 email = '2973918177@qq.com'
 
 engine_name = '天眼搜索引擎'
-engine_name_en = 'TY Spider'
+engine_name_en = 'TY-Spider'
 
 target_depth: int = 50  # bfs抓取深度
 wiki: str = 'https://zh.wikipedia.org'

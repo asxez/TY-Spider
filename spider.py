@@ -9,21 +9,21 @@ from bs4 import BeautifulSoup
 from loguru import logger
 from lxml import etree
 
-import config
-import mongodb
-from robots import RobotsParser
+from config import engine_name_en
 from database import MongoDB
-import error
+from error import Error, RequestError, IIndexError
+from mongodb import save_data
+from robots import RobotsParser
 
 headers = {
-    'User-Agent': config.engine_name_en
+    'User-Agent': engine_name_en
 }
 
 
 def get_bing_response(question: Any) -> str:
     try:
         response = requests.get(config.bing_api.format(q=question), headers=headers).text
-    except error.Error as e:
+    except Error as e:
         logger.error(f'获取必应响应出错：{e}')
     else:
         return response
@@ -45,7 +45,7 @@ def parse_bing_response(text: str) -> list[dict]:
                 'href': href,
                 'word': ''
             })
-        except error.Error as e:
+        except Error as e:
             logger.error(f'解析必应响应出错:{e}')
     return datas
 
@@ -60,7 +60,7 @@ def parse_page_url(text: str) -> dict[str, str]:
             href = element.xpath('./a/@href')[0]
             href = "https://www4.bing.com" + href
             ph[page] = href
-        except error.Error as e:  # 可能存在多种类型的错误
+        except Error as e:  # 可能存在多种类型的错误
             logger.error(f'解析页面链接出错：{e}')
     return ph
 
@@ -70,7 +70,7 @@ def get_other_page_response(urls: dict) -> list[list[dict]]:
     for page, url in urls.items():
         try:
             data = parse_bing_response(requests.get(url, headers=headers).text)
-        except error.Error as e:
+        except Error as e:
             logger.error(f'获取其他页出错：{e}')
         else:
             logger.info(f'获取 {page} 响应成功')
@@ -106,7 +106,7 @@ def get_keywords_and_description(url: str) -> Union[list[dict[str, str | None]],
                 'href': url
             })
             return datas
-    except error.Error as e:
+    except Error as e:
         logger.error(f"获取 {url} 信息出错：{e}")
     return None
 
@@ -120,7 +120,7 @@ def get_links_from_url(url: str) -> list[str]:
             soup = BeautifulSoup(response.text, 'html.parser')
             links = [a['href'] for a in soup.find_all('a', href=True)]
             return links
-    except error.RequestError as e:
+    except RequestError as e:
         logger.error(f"访问 {url} 出错：{e}")
     return []
 
@@ -131,7 +131,7 @@ def in_wiki(query: str) -> bool:
         if '目前还没有与上述标题相同的条目' in response.text:
             return False
         return True
-    except error.RequestError as e:
+    except RequestError as e:
         logger.error(f'检测维基百科收录出现错误{e}')
 
 
@@ -143,7 +143,7 @@ def save_bfs_state(visited: set, get: set, queue: deque) -> None:
     try:
         with open(bfs_state_file, 'wb') as f:
             pickle.dump(state_data, f)
-    except error.Error as e:
+    except Error as e:
         logger.error(f'保存pkl文件失败：{e}')
 
 
@@ -155,7 +155,7 @@ def load_bfs_state() -> tuple[Any, Any, Any] | tuple[None, None, None]:
             return visited, get, queue
         else:
             return None, None, None
-    except error.Error as e:
+    except Error as e:
         logger.error(f'加载bfs状态时出错：{e}')
 
 
@@ -186,7 +186,7 @@ def bfs(start: str, target_depth: int = 2) -> None:
                         link = start + link
                     try:
                         link = 'http' + link.split('http')[2]  # 获取到的链接存在一点问题，暂时用这个方法解决
-                    except error.IIndexError:
+                    except IIndexError:
                         pass
                     if link in get:
                         continue
@@ -198,7 +198,7 @@ def bfs(start: str, target_depth: int = 2) -> None:
                     if data is None:
                         continue
                     else:
-                        mongodb.save_data(data, col)
+                        save_data(data, col)
                     # with open('./temp/bfs.txt', 'a', encoding='utf-8') as f:
                     #   f.write(f'{link}\n')
                 save_bfs_state(visited, get, queue)
