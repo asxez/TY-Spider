@@ -160,9 +160,7 @@ def load_bfs_state() -> tuple[Any, Any, Any] | tuple[None, None, None]:
 
 
 def bfs(start: str, target_depth: int = 2) -> None:
-    # visited = set()
-    # get = set()
-    # queue = deque([(start, 0)])  # 存储(URL, 深度)的队列
+
     visited, get, queue = load_bfs_state() or (set(), set(), deque([(start, 0)]))
     robots_parser = RobotsParser(user_agent=config.engine_name_en)
     with MongoDB() as db:
