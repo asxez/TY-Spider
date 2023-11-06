@@ -197,10 +197,7 @@ def bfs(start: str, target_depth: int = 2) -> None:
                     data = get_keywords_and_description(link)
                     if data is None:
                         continue
-                    else:
-                        save_data(data, col)
-                    # with open('./temp/bfs.txt', 'a', encoding='utf-8') as f:
-                    #   f.write(f'{link}\n')
+                    save_data(data, col)
                 save_bfs_state(visited, get, queue)
                 time.sleep(random.uniform(2.0, 3.0))
             else:
