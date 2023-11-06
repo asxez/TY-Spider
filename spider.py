@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from loguru import logger
 from lxml import etree
 
-from config import engine_name_en
+from config import engine_name_en,bing_api,wiki,target_depth
 from database import MongoDB
 from error import Error, RequestError, IIndexError
 from mongodb import save_data
@@ -22,7 +22,7 @@ headers = {
 
 def get_bing_response(question: Any) -> str:
     try:
-        response = requests.get(config.bing_api.format(q=question), headers=headers).text
+        response = requests.get(bing_api.format(q=question), headers=headers).text
     except Error as e:
         logger.error(f'获取必应响应出错：{e}')
     else:
@@ -40,10 +40,10 @@ def parse_bing_response(text: str) -> list[dict]:
             title = element.xpath('./h2/a/text() | ./h2/a/strong/text()')
             title = "".join(title)
             datas.append({
-                'title': title,
-                'description': description,
-                'href': href,
-                'word': ''
+                "title": title,
+                "description": description,
+                "href": href,
+                "word": ""
             })
         except Error as e:
             logger.error(f'解析必应响应出错:{e}')
@@ -100,10 +100,10 @@ def get_keywords_and_description(url: str) -> Union[list[dict[str, str | None]],
                 return None
 
             datas.append({
-                'title': title,
-                'word': keywords_content,
-                'description': description_content,
-                'href': url
+                "title": title,
+                "word": keywords_content,
+                "description": description_content,
+                "href": url
             })
             return datas
     except Error as e:
@@ -127,7 +127,7 @@ def get_links_from_url(url: str) -> list[str]:
 
 def in_wiki(query: str) -> bool:
     try:
-        response = requests.get(config.wiki + '/wiki/' + query, headers=headers, timeout=5)
+        response = requests.get(wiki + '/wiki/' + query, headers=headers, timeout=5)
         if '目前还没有与上述标题相同的条目' in response.text:
             return False
         return True
@@ -160,9 +160,11 @@ def load_bfs_state() -> tuple[Any, Any, Any] | tuple[None, None, None]:
 
 
 def bfs(start: str, target_depth: int = 2) -> None:
-
+    # visited = set()
+    # get = set()
+    # queue = deque([(start, 0)])  # 存储(URL, 深度)的队列
     visited, get, queue = load_bfs_state() or (set(), set(), deque([(start, 0)]))
-    robots_parser = RobotsParser(user_agent=config.engine_name_en)
+    robots_parser = RobotsParser(user_agent=engine_name_en)
     with MongoDB() as db:
         col = db.col
 
@@ -207,5 +209,5 @@ def bfs(start: str, target_depth: int = 2) -> None:
 
 
 if __name__ == '__main__':
-    start_url = config.wiki
-    bfs(start_url, config.target_depth)
+    start_url = wiki
+    bfs(start_url, target_depth)
