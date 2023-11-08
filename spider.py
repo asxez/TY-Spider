@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from loguru import logger
 from lxml import etree
 
-from config import engine_name_en,bing_api,wiki,target_depth
+from config import engine_name_en, bing_api, wiki, target_depth
 from database import MongoDB
 from error import Error, RequestError, IIndexError
 from mongodb import save_data
