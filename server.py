@@ -12,11 +12,11 @@ from config import fastapi_port
 from data_process import remove_stop_words, tfidf
 from database import MongoDB
 from error import Error
-from mongodb import search_data, save_data,creat_index
+from mongodb import search_data, save_data, creat_index
 from spider import get_bing_response, get_other_page_response, parse_page_url, parse_bing_response
 
 app = FastAPI()
-app.mount("/static",StaticFiles(directory="static"),name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
@@ -26,11 +26,14 @@ def not_question() -> dict[str, str | int]:
         "response": "未输入内容"
     }
 
-
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+
+@app.get("/show", response_class=HTMLResponse)
+async def get_show(request: Request):
+    return templates.TemplateResponse("show.html", {"request": request})
 
 @app.post("/search/", response_class=JSONResponse)
 async def search(q: str = Form()) -> dict[str, str | int]:
@@ -55,7 +58,8 @@ async def search(q: str = Form()) -> dict[str, str | int]:
                     for result in results:
                         temp_results.append(result)
 
-                texts = [str(doc["title"]) + " " + str(doc["description"]) + " " + str(doc["word"]) for doc in temp_results]
+                texts = [str(doc["title"]) + " " + str(doc["description"]) + " " + str(doc["word"]) for doc in
+                         temp_results]
                 ranked_indices = tfidf(texts, list_question)
 
                 for rank, index in enumerate(ranked_indices):

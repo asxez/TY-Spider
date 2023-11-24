@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', sjyy);
 
 let button = document.getElementById('ty-btn');
 let search = document.getElementById('input-search');
+
 button.addEventListener('click', () => {
     let xhr = new XMLHttpRequest();
     let fd = new FormData();
@@ -36,24 +37,28 @@ button.addEventListener('click', () => {
         if (this.readyState === 4 && this.status === 200) {
             let res = JSON.parse(this.responseText)['response']
             let arrs = res.slice(1, -1).split('}');
+            let contentArray = [];
             for (const arr of arrs) {
                 let data = arr.substring(1) + "}";
                 if (data.includes("title") && data.includes("href")) {
-                    /*
-                    * 使用正则表达式提取数据（因为得到的数据是单引号，无法用JSON解析，使用正则也是无奈之举（不要问为什么不把单引号转成双引号））
-                    */
                     const word = /'word':\s*'([^']+)'/i.exec(data);
                     const description = /'description':\s*'([^']+)'/i.exec(data);
                     const href = /'href':\s*'([^']+)'/i.exec(data);
                     const title = /'title':\s*'([^']+)'/i.exec(data);
-                    if (title && href) {
-                        console.log(word);
-                        console.log(description);
-                        console.log(href);
-                        console.log(title);
+                    if (title && href && word) {
+                        let contents = {
+                            TTitle: title[1],
+                            THref: href[1],
+                            TKeywords: word[1]
+                        };
+                        contentArray.push(contents);
                     }
                 }
             }
+            // console.log(contentArray);
+            window.localStorage.setItem("content", JSON.stringify(contentArray));
+            window.localStorage.setItem("search", search.value);
+            window.open("http://127.0.0.1:1314/show/")
         }
     }
     xhr.open('POST', 'http://127.0.0.1:1314/search/', true)

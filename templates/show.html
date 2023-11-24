@@ -1,10 +1,146 @@
-<!DOCTYPE html>
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
     <title>加载中...</title>
+    <link rel="icon" href="../static/images/favicon.ico">
+    <style>
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        a:hover {
+            transform: scale(1.02);
+        }
+
+        .app {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            max-width: 1500px;
+        }
+
+        .container .header {
+            width: 100%;
+            height: 80px;
+            background-color: rgba(225, 225, 225, 0.7);
+        }
+
+        .container .body {
+            width: 100%;
+            height: auto;
+            display: flex;
+        }
+
+        .container .body .left {
+            display: flex;
+            width: 50%;
+            margin-left: 160px;
+            flex-direction: column;
+            max-width: 700px;
+        }
+
+        .container .content {
+            width: 700px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .container .content .title {
+            width: 700px;
+            color: #4007a2;
+            font-size: 20px;
+            line-height: 28px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .container .content .href {
+            width: 700px;
+            line-height: 22px;
+            font-size: .75rem;
+            color: #71777d;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .container .content .keywords {
+            width: 700px;
+            font-size: .875rem;
+            line-height: 1.25rem;
+        }
+    </style>
 </head>
 <body>
+<div class="app">
+    <div class="container">
+        <div class="header"></div>
+        <div class="body">
+            <div id="left" class="left">
 
+            </div>
+            <div class="right"></div>
+        </div>
+    </div>
+</div>
+<script>
+    let contents = JSON.parse(window.localStorage.getItem("content"));
+    let DTitle = window.localStorage.getItem("search");
+    document.title = DTitle + " - 搜索";
+    for (let TContent of contents.slice(0, 10)) {
+
+        let left = document.getElementById("left");
+
+        let title1 = document.createElement("div");
+        title1.className = "title";
+        title1.textContent = TContent["TTitle"];
+
+        let href1 = document.createElement("div");
+        href1.className = "href";
+        href1.textContent = TContent["THref"];
+
+        let keywords = document.createElement("div");
+        keywords.className = "keywords";
+        keywords.textContent = TContent["TKeywords"];
+
+        let a = document.createElement("a");
+        a.target = "_blank";
+        a.href = TContent["THref"];
+        a.appendChild(href1);
+        a.appendChild(title1);
+        a.appendChild(keywords);
+
+        let content = document.createElement("div");
+        content.className = "content";
+
+        content.appendChild(a);
+        left.appendChild(content);
+    }
+</script>
 </body>
 </html>
