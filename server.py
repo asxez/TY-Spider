@@ -31,7 +31,7 @@ async def get_index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-@app.get("/show", response_class=HTMLResponse)
+@app.get("/show/", response_class=HTMLResponse)
 async def get_show(request: Request):
     return templates.TemplateResponse("show.html", {"request": request})
 
