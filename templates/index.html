@@ -17,15 +17,18 @@
         <img id="bg" src="../static/images/bg1.jpg" alt="bg" >
         <div class="cover"></div>
         <div class="up">
-            <div class="time">18:03</div>
+            <div id="now_time" class="time">loading...</div>
             <div class="search">
                 <img id="img_search" src="../static/images/search.png" alt="search" width="20px" height="20px">
                 <div class="search-bar">
-                    <label for="input-search"></label><input id="input-search" type="text" placeholder="搜索" autocomplete="off">
+                    <input id="input-search" type="text" autocomplete="off">
                 </div>
             </div>
             <div class="btn_search">
-                <button class="btn"><span>搜索</span></button>
+                <button id="ty-btn" class="btn"><span>天眼搜索</span></button>
+            </div>
+            <div class="sjyy">
+                <div id="text">loading...</div>
             </div>
         </div>
         <div class="bottom">
@@ -36,5 +39,6 @@
         </div>
     </main>
 </div>
+<script src="../static/js/main.js"></script>
 </body>
 </html>

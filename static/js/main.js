@@ -1,3 +1,4 @@
+
 function nowtime() {
     let date = new Date();
     let time = document.getElementById('now_time');
@@ -51,12 +52,15 @@ button.addEventListener('click', () => {
                             THref: href[1],
                             TKeywords: word[1]
                         };
+                        const exists = contentArray.some(obj => JSON.stringify(obj) === JSON.stringify(contents));
+                        if (exists)
+                            continue;
                         contentArray.push(contents);
                     }
                 }
             }
             // console.log(contentArray);
-            window.localStorage.setItem("content", JSON.stringify(contentArray));
+            window.localStorage.setItem("content", JSON.stringify(contentArray.slice(0, 200)));
             window.localStorage.setItem("search", search.value);
             window.open("http://127.0.0.1:1314/show/")
         }
