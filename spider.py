@@ -12,7 +12,6 @@ from lxml import etree
 
 from config import engine_name_en, bing_api, wiki, target_depth
 from database import MongoDB
-from error import Error, RequestError, IIndexError
 from mongodb import save_data
 from robots import RobotsParser
 from log_lg import SpiderLog
@@ -137,21 +136,18 @@ def in_wiki(query: str) -> bool:
         logger.error(f'检测维基百科收录出现错误{e}')
 
 
-bfs_state_file = './temp/state_file.pkl'
-
-
-def save_bfs_state(visited: set, get: set, queue: deque) -> None:
+def save_bfs_state(visited: set, get: set, queue: deque, file_name: str) -> None:
     state_data = (visited, get, queue)
     try:
-        with open(bfs_state_file, 'wb') as f:
+        with open(f'./temp/{file_name}.pkl', 'wb') as f:
             pickle.dump(state_data, f)
     except Exception as e:
         logger.error(f'保存pkl文件失败：{e}')
 
 
-def load_bfs_state() -> tuple[Any, Any, Any] | tuple[None, None, None]:
+def load_bfs_state(file_name: str) -> tuple[Any, Any, Any] | tuple[None, None, None]:
     try:
-        with open(bfs_state_file, 'rb') as f:
+        with open(f'./temp/{file_name}.pkl', 'rb') as f:
             visited, get, queue = pickle.load(f)
         if visited and get and queue:
             return visited, get, queue
@@ -161,11 +157,8 @@ def load_bfs_state() -> tuple[Any, Any, Any] | tuple[None, None, None]:
         logger.error(f'加载bfs状态时出错：{e}')
 
 
-def bfs(start: str, target_depth: int = 2) -> None:
-    # visited = set()
-    # get = set()
-    # queue = deque([(start, 0)])  # 存储(URL, 深度)的队列
-    visited, get, queue = load_bfs_state() or (set(), set(), deque([(start, 0)]))
+def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
+    visited, get, queue = load_bfs_state(file_name) or (set(), set(), deque([(start, 0)]))
     robots_parser = RobotsParser(user_agent=engine_name_en)
     with MongoDB() as db:
         col = db.col
@@ -201,10 +194,8 @@ def bfs(start: str, target_depth: int = 2) -> None:
                         continue
                     else:
                         save_data(data, col)
-                    # with open('./temp/bfs.txt', 'a', encoding='utf-8') as f:
-                    #   f.write(f'{link}\n')
-                save_bfs_state(visited, get, queue)
-                time.sleep(random.uniform(2.0, 3.0))
+                save_bfs_state(visited, get, queue, file_name)
+                time.sleep(random.uniform(1.2, 2.4))
             else:
                 logger.warning(f'{url}不允许爬')
                 continue
@@ -212,12 +203,13 @@ def bfs(start: str, target_depth: int = 2) -> None:
 
 if __name__ == '__main__':
     SpiderLog()
+
     processes = []
-    p1 = multiprocessing.Process(target=bfs, args=("http://site.ageqin.cn/", target_depth))
+    p1 = multiprocessing.Process(target=bfs, args=("https://www.codernav.cn", "codernav", target_depth))
     processes.append(p1)
     p1.start()
 
-    p2 = multiprocessing.Process(target=bfs, args=("https://www.hao123.sh/", target_depth))
+    p2 = multiprocessing.Process(target=bfs, args=("https://www.sjsdh.cn", "sjsdh", target_depth))
     processes.append(p2)
     p2.start()
 

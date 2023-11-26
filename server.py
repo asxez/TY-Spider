@@ -27,13 +27,16 @@ def not_question() -> dict[str, str | int]:
         "response": "未输入内容"
     }
 
+
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+
 @app.get("/show/", response_class=HTMLResponse)
 async def get_show(request: Request):
     return templates.TemplateResponse("show.html", {"request": request})
+
 
 @app.post("/search/", response_class=JSONResponse)
 async def search(q: str = Form()) -> dict[str, str | int]:
@@ -66,14 +69,14 @@ async def search(q: str = Form()) -> dict[str, str | int]:
                     temp_results_rank.append(temp_results[index])
                 return {
                     "status": 1,
-                    "response": str(temp_results_rank)
+                    "response": str(temp_results_rank[0:1000])
                 }
 
         logger.info("数据不存在，开始爬")
-        # try:
-        #     os.makedirs("./temp/")
-        # except Error:
-        #     pass
+        try:
+            os.makedirs("./temp/")
+        except OSError:
+            pass
         with open("./temp/q.txt", "a", encoding="utf-8") as f2:
             f2.write(f"{q} ")
 
@@ -96,7 +99,7 @@ async def search(q: str = Form()) -> dict[str, str | int]:
             temp_results_rank.append(temp_results[index])
         return {
             "status": 1,
-            "response": str(temp_results_rank)
+            "response": str(temp_results_rank[0:1000])
         }
 
 

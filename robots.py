@@ -4,7 +4,6 @@ import requests
 from loguru import logger
 
 from config import engine_name_en
-from error import RequestError
 
 
 class RobotsParser:
