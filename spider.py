@@ -21,6 +21,17 @@ headers = {
 }
 
 
+def status_code_is_200(url):
+    try:
+        res = requests.get(url, headers=headers).status_code
+    except Exception:
+        pass
+    else:
+        if res == 200:
+            return True
+        return False
+
+
 def get_bing_response(question: Any) -> str:
     try:
         response = requests.get(bing_api.format(q=question), headers=headers).text
@@ -166,38 +177,42 @@ def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
         while queue:
             url, depth = queue.popleft()
 
-            if robots_parser.can_crawl(url):
-                if depth > target_depth:
-                    break
-                if url in visited:
+            if status_code_is_200(url):
+
+                if robots_parser.can_crawl(url):
+                    if depth > target_depth:
+                        break
+                    if url in visited:
+                        continue
+
+                    visited.add(url)
+                    logger.info(f"深度：{depth}，链接：{url}，process：{multiprocessing.current_process().name}")
+
+                    links = get_links_from_url(url)
+                    for link in links:
+                        if link.startswith('/'):
+                            link = start + link
+                        try:
+                            link = 'http' + link.split('http')[2]  # 获取到的链接存在一点问题，暂时用这个方法解决
+                        except IndexError:
+                            pass
+                        if link in get:
+                            continue
+                        get.add(link)
+                        queue.append((link, depth + 1))
+                        if ('wiki' in link and '.org' in link) or (not link.startswith('http')):  # 去除维基百科和非链接
+                            continue
+                        data = get_keywords_and_description(link)
+                        if data is None:
+                            continue
+                        else:
+                            save_data(data, col)
+                    save_bfs_state(visited, get, queue, file_name)
+                    time.sleep(random.uniform(1.2, 2.4))
+                else:
+                    logger.warning(f'{url}不允许爬')
                     continue
-
-                visited.add(url)
-                logger.info(f"深度：{depth}，链接：{url}，process：{multiprocessing.current_process().name}")
-
-                links = get_links_from_url(url)
-                for link in links:
-                    if link.startswith('/'):
-                        link = start + link
-                    try:
-                        link = 'http' + link.split('http')[2]  # 获取到的链接存在一点问题，暂时用这个方法解决
-                    except IndexError:
-                        pass
-                    if link in get:
-                        continue
-                    get.add(link)
-                    queue.append((link, depth + 1))
-                    if ('wiki' in link and '.org' in link) or (not link.startswith('http')):  # 去除维基百科和非链接
-                        continue
-                    data = get_keywords_and_description(link)
-                    if data is None:
-                        continue
-                    else:
-                        save_data(data, col)
-                save_bfs_state(visited, get, queue, file_name)
-                time.sleep(random.uniform(1.2, 2.4))
             else:
-                logger.warning(f'{url}不允许爬')
                 continue
 
 

@@ -11,7 +11,6 @@ from loguru import logger
 from config import fastapi_port
 from data_process import remove_stop_words, tfidf
 from database import MongoDB
-from error import Error
 from mongodb import search_data, save_data, creat_index
 from spider import get_bing_response, get_other_page_response, parse_page_url, parse_bing_response
 from log_lg import ServerLog
