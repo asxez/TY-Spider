@@ -1,5 +1,6 @@
 from typing import Callable
 from datetime import date
+import time
 
 from loguru import logger
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -23,6 +24,6 @@ def schedule(func: Callable, args: tuple, hour: int, minute: int) -> None:
 
     try:
         while True:
-            pass
+            time.sleep(1)
     except (KeyboardInterrupt, SystemExit):
         scheduler.shutdown()
