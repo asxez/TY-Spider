@@ -14,6 +14,7 @@ from database import MongoDB
 from error import Error
 from mongodb import search_data, save_data, creat_index
 from spider import get_bing_response, get_other_page_response, parse_page_url, parse_bing_response
+from log_lg import ServerLog
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -29,7 +30,6 @@ def not_question() -> dict[str, str | int]:
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
-
 
 @app.get("/show/", response_class=HTMLResponse)
 async def get_show(request: Request):
@@ -101,6 +101,7 @@ async def search(q: str = Form()) -> dict[str, str | int]:
 
 
 if __name__ == "__main__":
+    ServerLog()
     with MongoDB() as db:
         creat_index(db.col)
     config = uvicorn.Config("server:app", port=fastapi_port, log_level="info")

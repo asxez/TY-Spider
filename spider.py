@@ -5,7 +5,6 @@ import multiprocessing
 from collections import deque
 from typing import Union, Any
 
-
 import requests
 from bs4 import BeautifulSoup
 from loguru import logger
@@ -16,6 +15,7 @@ from database import MongoDB
 from error import Error, RequestError, IIndexError
 from mongodb import save_data
 from robots import RobotsParser
+from log_lg import SpiderLog
 
 headers = {
     'User-Agent': engine_name_en
@@ -211,6 +211,7 @@ def bfs(start: str, target_depth: int = 2) -> None:
 
 
 if __name__ == '__main__':
+    SpiderLog()
     processes = []
     p1 = multiprocessing.Process(target=bfs, args=("http://site.ageqin.cn/", target_depth))
     processes.append(p1)

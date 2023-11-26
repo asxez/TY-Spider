@@ -6,7 +6,8 @@ from pymongo import MongoClient, ASCENDING
 from pymongo.cursor import Cursor
 
 from database import MongoDB
-
+from schedule import schedule
+from log_lg import MongodbLog
 
 def cost_time(func: Callable) -> Callable:
     def fun(*args, **kwargs):
@@ -82,6 +83,6 @@ def creat_index(col: MongoClient) -> None:
 
 
 if __name__ == "__main__":
+    MongodbLog()
     with MongoDB() as db:
-        del_repeat(db.col)
-    # threading.Thread(target=get_response_from_bfs).start()
+        schedule(del_repeat, (db.col,), 0, 0)
