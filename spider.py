@@ -21,7 +21,7 @@ headers = {
 }
 
 
-def status_code_is_200(url):
+def status_code_is_200(url: str) -> bool:
     try:
         res = requests.get(url, headers=headers).status_code
     except Exception:

@@ -11,7 +11,7 @@ class ReverseIndex:
     def __init__(self):
         self.index = {}
 
-    def build_index(self, doc):
+    def build_index(self, doc: list) -> None:
         words = []
         for doc_id, data in enumerate(doc):
             words.extend(list(cut_for_search(data['title'])))
@@ -22,7 +22,7 @@ class ReverseIndex:
                     self.index[word] = []
                 self.index[word].append(doc_id)
 
-    def search(self, query):
+    def search(self, query: str) -> set[Any]:
         query_words = cut_for_search(query)
         query_words = remove_stop_words(query_words)
         result = set()
