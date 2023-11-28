@@ -1,3 +1,5 @@
+import json
+import os
 from typing import Any, Union
 
 from jieba import cut_for_search
@@ -11,28 +13,40 @@ class ReverseIndex:
     def __init__(self):
         self.index = {}
 
+        if os.path.exists('./temp/key/'):
+            pass
+        else:
+            os.makedirs('./temp/key/')
+
     def build_index(self, doc: list) -> None:
         words = []
         for doc_id, data in enumerate(doc):
-            words.extend(list(cut_for_search(data['title'])))
-            words.extend(list(cut_for_search(data['word'])))
-            words.extend(list(cut_for_search(data['description'])))
+            words.extend(list(remove_stop_words(cut_for_search(data['title']))))
+            words.extend(list(remove_stop_words(cut_for_search(data['word']))))
+            words.extend(list(remove_stop_words(cut_for_search(data['description']))))
             for word in words:
                 if word not in self.index:
                     self.index[word] = []
                 self.index[word].append(doc_id)
 
-    def search(self, query: str) -> set[Any]:
+    def save_index(self) -> None:
+        with open(f'./temp/key/keys.json', 'w', encoding='utf-8') as file:
+            file.write(json.dumps(self.index, ensure_ascii=False))
+
+    def search(self, query: str) -> list:
         query_words = cut_for_search(query)
         query_words = remove_stop_words(query_words)
         result = set()
         for word in query_words:
             if word in self.index:
                 result.update(self.index[word])
-        return result
+        return list(result)
+
+    def get_index(self) -> dict:
+        return self.index
 
 
-def tfidf(texts: list, querys: list) -> Union[Any, None]:
+def TFIDF(texts: list, querys: list) -> Union[Any, None]:
     vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform(texts)
 
@@ -51,3 +65,7 @@ def tfidf(texts: list, querys: list) -> Union[Any, None]:
 def remove_stop_words(ori_list: list) -> list:
     words = set(stop_words)
     return [item for item in ori_list if item not in words]
+
+
+if __name__ == '__main__':
+    index = ReverseIndex()

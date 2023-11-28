@@ -1,0 +1,164 @@
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+a {
+    text-decoration: none;
+}
+
+a:hover {
+    transform: scale(1.02);
+}
+
+.app {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+}
+
+.main {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.container {
+    width: 100%;
+    height: 100%;
+    margin: 0 auto;
+}
+
+.all {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    background-color: rgba(225, 225, 225, 0.35);
+    overflow-x: hidden;
+}
+
+.all .header {
+    width: 100%;
+    height: 60px;
+    background-color: #fff;
+    z-index: 999;
+    top: 0;
+    position: absolute;
+    margin: 0;
+    padding: 0;
+}
+
+.all .body {
+    width: 100%;
+    height: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 80px;
+}
+
+.all .body .left {
+    width: 50%;
+    height: auto;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.all .body .left .content {
+    width: 100%;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    margin-bottom: 30px;
+}
+
+.all .body .left .content .href {
+    width: auto;
+    line-height: 22px;
+    font-size: .75rem;
+    color: #71777d;
+}
+
+.all .body .left .content .title {
+    width: auto;
+    color: #4007a2;
+    font-size: 22px;
+    line-height: 28px;
+}
+
+.all .body .left .content .keywords {
+    width: auto;
+    font-size: .875rem;
+    line-height: 1.25rem;
+}
+
+.all .body .right {
+    width: 50%;
+    max-width: 600px;
+    height: auto;
+}
+
+.title-text {
+    max-width: 600px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    display: inline-block;
+}
+
+.href-text {
+    max-width: 600px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    display: inline-block;
+}
+
+.keywords-text {
+    max-width: 600px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    display: inline-block;
+}
+
+.all .footer {
+    display: flex;
+    width: 100%;
+    height: auto;
+    justify-content: center;
+    align-items: center;
+}
+
+.all .footer .text {
+    width: 30px;
+    height: 30px;
+    margin-right: 6px;
+    font-size: 20px;
+    line-height: 10px;
+    color: #71777d;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.all .footer .text:hover {
+    background-color: rgba(225, 225, 225, 0.8);
+}
+

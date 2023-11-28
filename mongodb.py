@@ -2,12 +2,14 @@ import time
 from typing import Any, Mapping, Callable
 
 from loguru import logger
-from pymongo import MongoClient, ASCENDING
+from pymongo import ASCENDING
+from pymongo.collection import Collection
 from pymongo.cursor import Cursor
 
 from database import MongoDB
-from schedule import schedule
 from log_lg import MongodbLog
+from schedule import schedule
+
 
 def cost_time(func: Callable) -> Callable:
     def fun(*args, **kwargs):
@@ -20,7 +22,7 @@ def cost_time(func: Callable) -> Callable:
 
 
 @cost_time
-def save_data(datas: list, col: MongoClient) -> None:
+def save_data(datas: list, col: Collection) -> None:
     if len(datas) == 0:
         logger.info("保存数据时所接受的列表为空")
         return None
@@ -28,7 +30,7 @@ def save_data(datas: list, col: MongoClient) -> None:
 
 
 @cost_time
-def del_repeat(col: MongoClient) -> None:
+def del_repeat(col: Collection) -> None:
     pipeline = [
         {
             "$group": {
@@ -50,8 +52,12 @@ def del_repeat(col: MongoClient) -> None:
 
 
 @cost_time
-def delete_keywords_and_description(col: MongoClient, description: str = "", word: str = "",
-                                    title: str = "") -> None:
+def delete_keywords_and_description(
+        col: Collection,
+        description: str = "",
+        word: str = "",
+        title: str = ""
+) -> None:
     query = {
         "$and": [
             {"description": {"$eq": description}},
@@ -64,7 +70,7 @@ def delete_keywords_and_description(col: MongoClient, description: str = "", wor
 
 
 @cost_time
-def search_data(text: str, col: MongoClient) -> Cursor[Mapping[str, Any]]:
+def search_data(text: str, col: Collection) -> Cursor[Mapping[str, Any]]:
     query = {
         "$or": [
             {"word": {"$regex": text, "$options": "i"}},
@@ -77,7 +83,12 @@ def search_data(text: str, col: MongoClient) -> Cursor[Mapping[str, Any]]:
 
 
 @cost_time
-def creat_index(col: MongoClient) -> None:
+def find_all(col: Collection) -> Cursor[Mapping[str, Any]]:
+    return col.find()
+
+
+@cost_time
+def creat_index(col: Collection) -> None:
     index = [("description", ASCENDING), ("word", ASCENDING), ("title", ASCENDING)]
     col.create_index(index)
 
