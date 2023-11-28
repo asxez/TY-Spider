@@ -2,202 +2,43 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="msapplication-TileColor" content="#00aba9">
-    <meta name="theme-color" content="#ffffff">
-    <link rel="icon" href="favicon.ico">
-    <style>
-        .sese-search-wrapper {
-            transition: .4s
-        }
-
-        .sese-input {
-            width: 30.5rem
-        }
-
-        *, :after, :before {
-            box-sizing: border-box;
-            border-width: 0;
-            border-style: solid;
-            border-color: #e5e7eb
-        }
-
-        a {
-            color: inherit;
-            text-decoration: inherit
-        }
-
-        button, input {
-            font-family: inherit;
-            font-size: 100%;
-            font-weight: inherit;
-            line-height: inherit;
-            color: inherit;
-            margin: 0;
-            padding: 0
-        }
-
-        .btn {
-            height: 2rem;
-            min-width: 6rem
-        }
-
-        .sese-btn {
-            position: relative;
-            z-index: 0;
-            --un-gradient-from: rgba(59, 130, 246, 1);
-            --un-gradient-stops: var(--un-gradient-from), var(--un-gradient-to);
-            --un-gradient-to: rgba(29, 78, 216, 1)
-        }
-
-        .sese-btn:before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            transition: all .4s;
-            z-index: -1;
-            border-radius: .25rem;
-            --un-gradient-from: rgba(239, 68, 68, 1);
-            --un-gradient-stops: var(--un-gradient-from), var(--un-gradient-to);
-            --un-gradient-to: rgba(185, 28, 28, 1);
-            --un-gradient-shape: to right;
-            --un-gradient: var(--un-gradient-shape), var(--un-gradient-stops);
-            background-image: linear-gradient(var(--un-gradient))
-        }
-
-        .sese-btn:hover:before {
-            opacity: 1
-        }
-
-        [i-ri-search-line=""] {
-            --un-icon: url("data:image/svg+xml;utf8,%3Csvg viewBox='0 0 24 24' width='1.2em' height='1.2em' xmlns='http://www.w3.org/2000/svg' %3E%3Cpath fill='currentColor' d='m18.031 16.617l4.283 4.282l-1.415 1.415l-4.282-4.283A8.96 8.96 0 0 1 11 20c-4.968 0-9-4.032-9-9s4.032-9 9-9s9 4.032 9 9a8.96 8.96 0 0 1-1.969 5.617Zm-2.006-.742A6.977 6.977 0 0 0 18 11c0-3.867-3.133-7-7-7s-7 3.133-7 7s3.133 7 7 7a6.977 6.977 0 0 0 4.875-1.975l.15-.15Z'/%3E%3C/svg%3E");
-            mask: var(--un-icon) no-repeat;
-            mask-size: 100% 100%;
-            -webkit-mask: var(--un-icon) no-repeat;
-            -webkit-mask-size: 100% 100%;
-            background-color: currentColor;
-            color: inherit;
-            width: 1.2em;
-            height: 1.2em
-        }
-
-        .btn {
-            display: inline-flex;
-            cursor: pointer;
-            align-items: center;
-            justify-content: center;
-            border-radius: .25rem;
-            --un-bg-opacity: .6;
-            padding-left: 1rem;
-            padding-right: 1rem;
-            --un-text-opacity: 1;
-            color: rgba(255, 255, 255, var(--un-text-opacity));
-            transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
-            transition-timing-function: cubic-bezier(.4, 0, .2, 1);
-            transition-duration: .3s
-        }
-
-        [m~=b-4] {
-            margin-bottom: 1rem
-        }
-
-        [h~=full] {
-            height: 100%
-        }
-
-        [h~=screen] {
-            height: 100vh
-        }
-
-        .flex {
-            display: flex
-        }
-
-        .inline-flex {
-            display: inline-flex
-        }
-
-        .flex-col {
-            flex-direction: column
-        }
-
-        .items-center {
-            align-items: center
-        }
-
-        .justify-center {
-            justify-content: center
-        }
-
-        [border~="~"] {
-            border-width: 1px
-        }
-
-        [rounded~=full] {
-            border-radius: 9999px
-        }
-
-        [bg~=gradient-to-r] {
-            --un-gradient-shape: to right;
-            --un-gradient: var(--un-gradient-shape), var(--un-gradient-stops);
-            background-image: linear-gradient(var(--un-gradient))
-        }
-
-        [p~="2"] {
-            padding: .5rem
-        }
-
-        .px-4 {
-            padding-left: 1rem;
-            padding-right: 1rem
-        }
-
-        .py-10 {
-            padding-top: 2.5rem;
-            padding-bottom: 2.5rem
-        }
-
-        .text-center {
-            text-align: center
-        }
-
-        .text-sm {
-            font-size: .875rem;
-            line-height: 1.25rem
-        }
-
-        [text~=xs] {
-            font-size: .75rem;
-            line-height: 1rem
-        }
-
-        [outline~=none] {
-            outline: 2px solid transparent;
-            outline-offset: 2px
-        }
-    </style>
-    <title>天眼搜索</title>
-    <meta name="description" content="TY-Search-Engine  天眼搜索引擎">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="keywords" content="天眼搜索引擎 TY-Spider">
+    <meta name="description" content="天眼搜索引擎，也叫TY-Spider，是一款轻量级的搜索引擎">
+    <title>天眼</title>
+    <link rel="icon" href="../static/images/favicon.ico">
+    <link rel="stylesheet" href="../static/css/style.css">
 </head>
 <body>
-<div id="app" data-server-rendered="true">
-    <main h="screen" class="px-4 py-10 text-center">
-        <div class="flex flex-col justify-center items-center" h="full">
-            <div class="sese-search-wrapper wrapper relative flex justify-center items-center" p="2" m="t-0 b-4"
-                 border="~ rounded gray-300 dark:gray-700" rounded="full">
-                <div i-ri-search-line class="inline-flex ml-2"></div>
-                <input id="input" class="sese-input" value m="x-2" aria-label="搜索" type="text" autocomplete="false"
-                       bg="transparent" outline="none active:none" autofocus>
+<div class="app">
+    <main class="main">
+        <img id="bg" src="../static/images/bg1.jpg" alt="bg">
+        <div class="cover"></div>
+        <div class="up">
+            <div id="now_time" class="time">loading...</div>
+            <div class="search">
+                <img id="img_search" src="../static/images/search.png" alt="search" width="20px" height="20px">
+                <div class="search-bar">
+                    <input id="input-search" type="text" autocomplete="off">
+                </div>
             </div>
-            <div m="b-18">
-                <button class="sese-btn m-3 text-sm btn" bg="gradient-to-r">搜索</button>
+            <div class="btn_search">
+                <button id="ty-btn" class="btn"><span>天眼搜索</span></button>
             </div>
+            <div class="sjyy">
+                <div id="text">loading...</div>
+            </div>
+        </div>
+        <div class="bottom">
+            <span>© 2023 ASXE&nbsp;&nbsp;</span>
+            <a href="https://github.com/asxez/TY-Spider">
+                <img src="../static/images/github.png" alt="github" width="24px" height="24px">
+            </a>
         </div>
     </main>
 </div>
+<script src="../static/js/main.js"></script>
 </body>
 </html>

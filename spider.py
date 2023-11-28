@@ -1,6 +1,7 @@
 import pickle
 import random
 import time
+import multiprocessing
 from collections import deque
 from typing import Union, Any
 
@@ -9,21 +10,32 @@ from bs4 import BeautifulSoup
 from loguru import logger
 from lxml import etree
 
-from config import engine_name_en
+from config import engine_name_en, bing_api, wiki, target_depth
 from database import MongoDB
-from error import Error, RequestError, IIndexError
 from mongodb import save_data
 from robots import RobotsParser
+from log_lg import SpiderLog
 
 headers = {
     'User-Agent': engine_name_en
 }
 
 
+def status_code_is_200(url):
+    try:
+        res = requests.get(url, headers=headers).status_code
+    except Exception:
+        pass
+    else:
+        if res == 200:
+            return True
+        return False
+
+
 def get_bing_response(question: Any) -> str:
     try:
-        response = requests.get(config.bing_api.format(q=question), headers=headers).text
-    except Error as e:
+        response = requests.get(bing_api.format(q=question), headers=headers).text
+    except Exception as e:
         logger.error(f'获取必应响应出错：{e}')
     else:
         return response
@@ -40,12 +52,12 @@ def parse_bing_response(text: str) -> list[dict]:
             title = element.xpath('./h2/a/text() | ./h2/a/strong/text()')
             title = "".join(title)
             datas.append({
-                'title': title,
-                'description': description,
-                'href': href,
-                'word': ''
+                "title": title,
+                "description": description,
+                "href": href,
+                "word": ""
             })
-        except Error as e:
+        except IndexError as e:
             logger.error(f'解析必应响应出错:{e}')
     return datas
 
@@ -60,7 +72,7 @@ def parse_page_url(text: str) -> dict[str, str]:
             href = element.xpath('./a/@href')[0]
             href = "https://www4.bing.com" + href
             ph[page] = href
-        except Error as e:  # 可能存在多种类型的错误
+        except Exception as e:  # 可能存在多种类型的错误
             logger.error(f'解析页面链接出错：{e}')
     return ph
 
@@ -70,7 +82,7 @@ def get_other_page_response(urls: dict) -> list[list[dict]]:
     for page, url in urls.items():
         try:
             data = parse_bing_response(requests.get(url, headers=headers).text)
-        except Error as e:
+        except Exception as e:
             logger.error(f'获取其他页出错：{e}')
         else:
             logger.info(f'获取 {page} 响应成功')
@@ -100,13 +112,13 @@ def get_keywords_and_description(url: str) -> Union[list[dict[str, str | None]],
                 return None
 
             datas.append({
-                'title': title,
-                'word': keywords_content,
-                'description': description_content,
-                'href': url
+                "title": title,
+                "word": keywords_content,
+                "description": description_content,
+                "href": url
             })
             return datas
-    except Error as e:
+    except Exception as e:
         logger.error(f"获取 {url} 信息出错：{e}")
     return None
 
@@ -120,94 +132,101 @@ def get_links_from_url(url: str) -> list[str]:
             soup = BeautifulSoup(response.text, 'html.parser')
             links = [a['href'] for a in soup.find_all('a', href=True)]
             return links
-    except RequestError as e:
+    except Exception as e:
         logger.error(f"访问 {url} 出错：{e}")
     return []
 
 
 def in_wiki(query: str) -> bool:
     try:
-        response = requests.get(config.wiki + '/wiki/' + query, headers=headers, timeout=5)
+        response = requests.get(wiki + '/wiki/' + query, headers=headers, timeout=5)
         if '目前还没有与上述标题相同的条目' in response.text:
             return False
         return True
-    except RequestError as e:
+    except Exception as e:
         logger.error(f'检测维基百科收录出现错误{e}')
 
 
-bfs_state_file = './temp/state_file.pkl'
-
-
-def save_bfs_state(visited: set, get: set, queue: deque) -> None:
+def save_bfs_state(visited: set, get: set, queue: deque, file_name: str) -> None:
     state_data = (visited, get, queue)
     try:
-        with open(bfs_state_file, 'wb') as f:
+        with open(f'./temp/{file_name}.pkl', 'wb') as f:
             pickle.dump(state_data, f)
-    except Error as e:
+    except Exception as e:
         logger.error(f'保存pkl文件失败：{e}')
 
 
-def load_bfs_state() -> tuple[Any, Any, Any] | tuple[None, None, None]:
+def load_bfs_state(file_name: str) -> tuple[Any, Any, Any] | tuple[None, None, None]:
     try:
-        with open(bfs_state_file, 'rb') as f:
+        with open(f'./temp/{file_name}.pkl', 'rb') as f:
             visited, get, queue = pickle.load(f)
         if visited and get and queue:
             return visited, get, queue
         else:
             return None, None, None
-    except Error as e:
+    except Exception as e:
         logger.error(f'加载bfs状态时出错：{e}')
 
 
-def bfs(start: str, target_depth: int = 2) -> None:
-    # visited = set()
-    # get = set()
-    # queue = deque([(start, 0)])  # 存储(URL, 深度)的队列
-    visited, get, queue = load_bfs_state() or (set(), set(), deque([(start, 0)]))
-    robots_parser = RobotsParser(user_agent=config.engine_name_en)
+def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
+    visited, get, queue = load_bfs_state(file_name) or (set(), set(), deque([(start, 0)]))
+    robots_parser = RobotsParser(user_agent=engine_name_en)
     with MongoDB() as db:
         col = db.col
 
         while queue:
             url, depth = queue.popleft()
 
-            if robots_parser.can_crawl(url):
-                if depth > target_depth:
-                    break
-                if url in visited:
+            if status_code_is_200(url):
+
+                if robots_parser.can_crawl(url):
+                    if depth > target_depth:
+                        break
+                    if url in visited:
+                        continue
+
+                    visited.add(url)
+                    logger.info(f"深度：{depth}，链接：{url}，process：{multiprocessing.current_process().name}")
+
+                    links = get_links_from_url(url)
+                    for link in links:
+                        if link.startswith('/'):
+                            link = start + link
+                        try:
+                            link = 'http' + link.split('http')[2]  # 获取到的链接存在一点问题，暂时用这个方法解决
+                        except IndexError:
+                            pass
+                        if link in get:
+                            continue
+                        get.add(link)
+                        queue.append((link, depth + 1))
+                        if ('wiki' in link and '.org' in link) or (not link.startswith('http')):  # 去除维基百科和非链接
+                            continue
+                        data = get_keywords_and_description(link)
+                        if data is None:
+                            continue
+                        else:
+                            save_data(data, col)
+                    save_bfs_state(visited, get, queue, file_name)
+                    time.sleep(random.uniform(1.2, 2.4))
+                else:
+                    logger.warning(f'{url}不允许爬')
                     continue
-
-                visited.add(url)
-                logger.info(f"深度：{depth}, 链接：{url}")
-
-                links = get_links_from_url(url)
-                for link in links:
-                    if link.startswith('/'):
-                        link = start + link
-                    try:
-                        link = 'http' + link.split('http')[2]  # 获取到的链接存在一点问题，暂时用这个方法解决
-                    except IIndexError:
-                        pass
-                    if link in get:
-                        continue
-                    get.add(link)
-                    queue.append((link, depth + 1))
-                    if ('wiki' in link and '.org' in link) or (not link.startswith('http')):  # 去除维基百科和非链接
-                        continue
-                    data = get_keywords_and_description(link)
-                    if data is None:
-                        continue
-                    else:
-                        save_data(data, col)
-                    # with open('./temp/bfs.txt', 'a', encoding='utf-8') as f:
-                    #   f.write(f'{link}\n')
-                save_bfs_state(visited, get, queue)
-                time.sleep(random.uniform(2.0, 3.0))
             else:
-                logger.warning(f'{url}不允许爬')
                 continue
 
 
 if __name__ == '__main__':
-    start_url = config.wiki
-    bfs(start_url, config.target_depth)
+    SpiderLog()
+
+    processes = []
+    p1 = multiprocessing.Process(target=bfs, args=("https://www.codernav.cn", "codernav", target_depth))
+    processes.append(p1)
+    p1.start()
+
+    p2 = multiprocessing.Process(target=bfs, args=("https://www.sjsdh.cn", "sjsdh", target_depth))
+    processes.append(p2)
+    p2.start()
+
+    for p in processes:
+        p.join()

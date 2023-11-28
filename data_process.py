@@ -1,9 +1,35 @@
 from typing import Any, Union
 
+from jieba import cut_for_search
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from config import stop_words
+
+
+class ReverseIndex:
+    def __init__(self):
+        self.index = {}
+
+    def build_index(self, doc):
+        words = []
+        for doc_id, data in enumerate(doc):
+            words.extend(list(cut_for_search(data['title'])))
+            words.extend(list(cut_for_search(data['word'])))
+            words.extend(list(cut_for_search(data['description'])))
+            for word in words:
+                if word not in self.index:
+                    self.index[word] = []
+                self.index[word].append(doc_id)
+
+    def search(self, query):
+        query_words = cut_for_search(query)
+        query_words = remove_stop_words(query_words)
+        result = set()
+        for word in query_words:
+            if word in self.index:
+                result.update(self.index[word])
+        return result
 
 
 def tfidf(texts: list, querys: list) -> Union[Any, None]:
@@ -22,6 +48,6 @@ def tfidf(texts: list, querys: list) -> Union[Any, None]:
     return ranked_indices
 
 
-def remove_stop_words(ori_list:list) -> list:
+def remove_stop_words(ori_list: list) -> list:
     words = set(stop_words)
     return [item for item in ori_list if item not in words]
