@@ -1,11 +1,11 @@
 import os
 
-import jieba
 import uvicorn
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from jieba import lcut_for_search
 from loguru import logger
 
 from config import fastapi_port
@@ -45,7 +45,7 @@ async def search(q: str = Form()) -> dict[str, str | int]:
         if not q:
             not_question()
 
-        list_question = ", ".join(jieba.cut_for_search(q)).split(', ')
+        list_question = lcut_for_search(q)
         list_question = remove_stop_words(list_question)
         temp_results = []
         temp_results_rank = []

@@ -2,11 +2,12 @@ import json
 import os
 from typing import Any, Union
 
-from jieba import cut_for_search
+from jieba import lcut_for_search
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from config import stop_words
+from utils import cost_time
 
 
 class ReverseIndex:
@@ -18,12 +19,13 @@ class ReverseIndex:
         else:
             os.makedirs('./temp/key/')
 
+    @cost_time
     def build_index(self, doc: list) -> None:
         words = []
         for doc_id, data in enumerate(doc):
-            words.extend(list(remove_stop_words(cut_for_search(data['title']))))
-            words.extend(list(remove_stop_words(cut_for_search(data['word']))))
-            words.extend(list(remove_stop_words(cut_for_search(data['description']))))
+            words.extend(remove_stop_words(lcut_for_search(data['title'])))
+            words.extend(remove_stop_words(lcut_for_search(data['word'])))
+            words.extend(remove_stop_words(lcut_for_search(data['description'])))
             for word in words:
                 if word not in self.index:
                     self.index[word] = []
@@ -33,8 +35,9 @@ class ReverseIndex:
         with open(f'./temp/key/keys.json', 'w', encoding='utf-8') as file:
             file.write(json.dumps(self.index, ensure_ascii=False))
 
+    @cost_time
     def search(self, query: str) -> list:
-        query_words = cut_for_search(query)
+        query_words = lcut_for_search(query)
         query_words = remove_stop_words(query_words)
         result = set()
         for word in query_words:
@@ -65,7 +68,3 @@ def TFIDF(texts: list, querys: list) -> Union[Any, None]:
 def remove_stop_words(ori_list: list) -> list:
     words = set(stop_words)
     return [item for item in ori_list if item not in words]
-
-
-if __name__ == '__main__':
-    index = ReverseIndex()

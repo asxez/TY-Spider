@@ -1,25 +1,30 @@
-from typing import Callable
-from datetime import date
 import time
+from datetime import date
+from typing import Callable
 
-from loguru import logger
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from loguru import logger
 
 
 def logging(func: Callable) -> Callable:
     def wrapper(*args, **kwargs):
-        logger.info(f"{func.__name__}: {date.today()}")
+        now_time = time.localtime()
+        logger.info(f"{func.__name__}: {date.today()} {now_time.tm_hour}:{now_time.tm_min}")
         return func(*args, **kwargs)
 
     return wrapper
 
 
-def schedule(func: Callable, args: tuple, hour: int, minute: int) -> None:
+def schedule(funcs: list[dict[str, Callable | int | tuple]]) -> None:
     scheduler = BackgroundScheduler()
-    wrapped_func = logging(func)
-
-    scheduler.add_job(wrapped_func, trigger=CronTrigger(hour=hour, minute=minute), args=args)
+    for func in funcs:
+        wrapped_func = logging(func['function'])
+        scheduler.add_job(
+            wrapped_func,
+            trigger=CronTrigger(hour=func['hour'], minute=func['minute']),
+            args=func['args']
+        )
     scheduler.start()
 
     try:

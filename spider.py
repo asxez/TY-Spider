@@ -1,7 +1,7 @@
+import multiprocessing
 import pickle
 import random
 import time
-import multiprocessing
 from collections import deque
 from typing import Union, Any
 
@@ -12,9 +12,9 @@ from lxml import etree
 
 from config import engine_name_en, bing_api, wiki, target_depth
 from database import MongoDB
+from log_lg import SpiderLog
 from mongodb import save_data
 from robots import RobotsParser
-from log_lg import SpiderLog
 
 headers = {
     'User-Agent': engine_name_en

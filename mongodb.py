@@ -1,24 +1,11 @@
-import time
-from typing import Any, Mapping, Callable
+from typing import Any, Mapping
 
 from loguru import logger
 from pymongo import ASCENDING
 from pymongo.collection import Collection
 from pymongo.cursor import Cursor
 
-from database import MongoDB
-from log_lg import MongodbLog
-from schedule import schedule
-
-
-def cost_time(func: Callable) -> Callable:
-    def fun(*args, **kwargs):
-        t = time.perf_counter()
-        result = func(*args, **kwargs)
-        logger.info(f"{func.__name__} 耗时：{time.perf_counter() - t:.8f}s")
-        return result
-
-    return fun
+from utils import cost_time
 
 
 @cost_time
@@ -91,9 +78,3 @@ def find_all(col: Collection) -> Cursor[Mapping[str, Any]]:
 def creat_index(col: Collection) -> None:
     index = [("description", ASCENDING), ("word", ASCENDING), ("title", ASCENDING)]
     col.create_index(index)
-
-
-if __name__ == "__main__":
-    MongodbLog()
-    with MongoDB() as db:
-        schedule(del_repeat, (db.col,), 0, 0)
