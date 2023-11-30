@@ -11,10 +11,14 @@ bing_api: str = 'https://www4.bing.com/search?q={q}'
 
 mongodb_host: str = '127.0.0.1'
 mongodb_port: int = 27017
+db_name: str = 'TY_Spider'
+data_col_name: str = 'sites'
+key_col_name: str = 'keys'
 
 fastapi_port: int = 1314
 
-stop_words: list[str] = ['$', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '?', '_', '“', '”', '、', '。', '《', '》',
+stop_words: list[str] = ['', '.', ',', '$', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '?', '_', '“', '”', '、',
+                         '。', '《', '》',
                          '一',
                          '一些', '一何', '一切', '一则', '一方面', '一旦', '一来', '一样', '一般', '一转眼', '万一',
                          '上',

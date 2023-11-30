@@ -17,11 +17,11 @@ def save_data(datas: list, col: Collection) -> None:
 
 
 @cost_time
-def del_repeat(col: Collection) -> None:
+def del_repeat(col: Collection, text: str, out: str) -> None:
     pipeline = [
         {
             "$group": {
-                "_id": "$href",  # 根据href字段去重
+                "_id": f"${text}",  # 根据{text}字段去重
                 "doc_id": {"$first": "$_id"},  # 保留第一个文档的_id字段
                 "doc": {"$first": "$$ROOT"}  # 保留第一个完整文档
             }
@@ -32,7 +32,7 @@ def del_repeat(col: Collection) -> None:
             }
         },
         {
-            "$out": "sites"  # 将去重后的结果写入新集合，此处为覆盖原集合
+            "$out": f"{out}"  # 将去重后的结果写入新集合，此处为覆盖原集合
         }
     ]
     col.aggregate(pipeline=pipeline)
@@ -48,7 +48,7 @@ def delete_keywords_and_description(
     query = {
         "$and": [
             {"description": {"$eq": description}},
-            {"word": {"$eq": word}},
+            {"keywords": {"$eq": word}},
             {"title": {"$eq": title}}
         ]
     }
@@ -60,7 +60,7 @@ def delete_keywords_and_description(
 def search_data(text: str, col: Collection) -> Cursor[Mapping[str, Any]]:
     query = {
         "$or": [
-            {"word": {"$regex": text, "$options": "i"}},
+            {"keywords": {"$regex": text, "$options": "i"}},
             {"description": {"$regex": text, "$options": "i"}},
             {"title": {"$regex": text, "$options": "i"}}
         ]
@@ -76,5 +76,5 @@ def find_all(col: Collection) -> Cursor[Mapping[str, Any]]:
 
 @cost_time
 def creat_index(col: Collection) -> None:
-    index = [("description", ASCENDING), ("word", ASCENDING), ("title", ASCENDING)]
+    index = [("description", ASCENDING), ("keywords", ASCENDING), ("title", ASCENDING)]
     col.create_index(index)

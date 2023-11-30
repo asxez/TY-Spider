@@ -1,3 +1,7 @@
+from random import uniform
+from time import sleep
+
+from config import db_name, data_col_name
 from data_process import ReverseIndex
 from database import MongoDB
 from log_lg import ManageLog
@@ -11,19 +15,23 @@ class Task:
 
     @staticmethod
     def mongodb() -> None:
-        with MongoDB() as db:
+        with MongoDB(db_name, data_col_name) as db:
             del_repeat(db.col)
 
     @staticmethod
     def make_index() -> None:
         index = ReverseIndex()
-        with MongoDB() as db:
+        i = 1
+        with MongoDB(db_name, data_col_name) as db:
             a = list(find_all(db.col))
-        try:
-            index.build_index(a)
-            index.save_index()
-        except AttributeError:
-            pass
+        while True:
+            ans = index.build_index(a[i * 20 - 20:i * 20])
+            if ans:
+                index.save_index()
+                i = i + 1
+                sleep(uniform(0.1, 0.4))
+            else:
+                break
 
 
 if __name__ == '__main__':

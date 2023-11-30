@@ -1,39 +1,48 @@
-import json
-import os
+from collections import defaultdict
+from time import sleep
 from typing import Any, Union
 
 from jieba import lcut_for_search
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from config import stop_words
+from config import stop_words, db_name, key_col_name
+from database import MongoDB
+from mongodb import save_data
 from utils import cost_time
 
 
 class ReverseIndex:
     def __init__(self):
-        self.index = {}
-
-        if os.path.exists('./temp/key/'):
-            pass
-        else:
-            os.makedirs('./temp/key/')
+        self.index = defaultdict()
 
     @cost_time
-    def build_index(self, doc: list) -> None:
+    def build_index(self, doc: list) -> bool:
+        if len(doc) < 20:
+            return False
         words = []
         for doc_id, data in enumerate(doc):
-            words.extend(remove_stop_words(lcut_for_search(data['title'])))
-            words.extend(remove_stop_words(lcut_for_search(data['word'])))
-            words.extend(remove_stop_words(lcut_for_search(data['description'])))
+            try:
+                words.extend(remove_stop_words(lcut_for_search(data['title'])))
+                words.extend(remove_stop_words(lcut_for_search(data['keywords'])))
+                words.extend(remove_stop_words(lcut_for_search(data['description'])))
+            except Exception:
+                continue
             for word in words:
                 if word not in self.index:
                     self.index[word] = []
                 self.index[word].append(doc_id)
+        return True
 
+    @cost_time
     def save_index(self) -> None:
-        with open(f'./temp/key/keys.json', 'w', encoding='utf-8') as file:
-            file.write(json.dumps(self.index, ensure_ascii=False))
+        with MongoDB(db_name, key_col_name) as db:
+            for key, value in self.index.items():
+                save_data(
+                    [{'key': key, 'value': value}],
+                    db.col
+                )
+        sleep(2)
 
     @cost_time
     def search(self, query: str) -> list:

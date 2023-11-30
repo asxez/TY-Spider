@@ -41,7 +41,7 @@ button.addEventListener('click', () => {
             for (const arr of arrs) {
                 let data = arr.substring(1) + "}";
                 if (data.includes("title") && data.includes("href")) {
-                    const word = /'word':\s*'([^']+)'/i.exec(data);
+                    const word = /'keywords':\s*'([^']+)'/i.exec(data);
                     const description = /'description':\s*'([^']+)'/i.exec(data);
                     const href = /'href':\s*'([^']+)'/i.exec(data);
                     const title = /'title':\s*'([^']+)'/i.exec(data);

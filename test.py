@@ -28,4 +28,24 @@
 # with MongoDB() as db:
 #     a = find_all(db.col)
 #     print(list(a[0:100]))
+#
+# from manage import Task
+# from schedule import schedule
+# task = Task()
+#
+# task2 = {
+#     'function': task.make_index,
+#     'hour': 23,
+#     'minute': 53,
+#     'args': None
+# }
+# schedule([task2])
 
+# import gzip
+# with gzip.open('./temp/key/keys.json.gz', 'rb') as file:
+#     print(file.read().decode('utf-8'))
+# from config import db_name, data_col_name, key_col_name
+# from database import MongoDB
+# from mongodb import del_repeat
+# with MongoDB(db_name, data_col_name) as db:
+#     del_repeat(db.col, 'key', 'keys')

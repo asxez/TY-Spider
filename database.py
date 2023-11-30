@@ -7,16 +7,18 @@ from config import mongodb_host, mongodb_port
 
 
 class MongoDB:
-    def __init__(self):
+    def __init__(self, db_name: str, col_name: str):
         self.client = None
         self.db = None
         self.col = None
         self.closed = False
+        self.db_name = db_name
+        self.col_name = col_name
 
     def __enter__(self) -> 'MongoDB':
         self.client = MongoClient(host=mongodb_host, port=mongodb_port)
-        self.db = self.client['datas']
-        self.col = self.db['sites']
+        self.db = self.client[self.db_name]
+        self.col = self.db[self.col_name]
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:

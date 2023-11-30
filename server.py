@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from jieba import lcut_for_search
 from loguru import logger
 
-from config import fastapi_port
+from config import fastapi_port, db_name, data_col_name
 from data_process import remove_stop_words, TFIDF
 from database import MongoDB
 from log_lg import ServerLog
@@ -39,7 +39,7 @@ async def get_show(request: Request):
 
 @app.post("/search/", response_class=JSONResponse)
 async def search(q: str = Form()) -> dict[str, str | int]:
-    with MongoDB() as db:
+    with MongoDB(db_name, data_col_name) as db:
         col = db.col
 
         if not q:
@@ -60,7 +60,7 @@ async def search(q: str = Form()) -> dict[str, str | int]:
                     for result in results:
                         temp_results.append(result)
 
-                texts = [str(doc["title"]) + " " + str(doc["description"]) + " " + str(doc["word"]) for doc in
+                texts = [str(doc["title"]) + " " + str(doc["description"]) + " " + str(doc["keywords"]) for doc in
                          temp_results]
                 ranked_indices = TFIDF(texts, list_question)
 
@@ -91,7 +91,7 @@ async def search(q: str = Form()) -> dict[str, str | int]:
             for result in results:
                 temp_results.append(result)
 
-        texts = [str(doc["title"]) + " " + str(doc["description"]) + " " + str(doc["word"]) for doc in temp_results]
+        texts = [str(doc["title"]) + " " + str(doc["description"]) + " " + str(doc["keywords"]) for doc in temp_results]
         ranked_indices = TFIDF(texts, list_question)
 
         for rank, index in enumerate(ranked_indices):
@@ -104,7 +104,7 @@ async def search(q: str = Form()) -> dict[str, str | int]:
 
 if __name__ == "__main__":
     ServerLog()
-    with MongoDB() as db:
+    with MongoDB(db_name, data_col_name) as db:
         creat_index(db.col)
     config = uvicorn.Config("server:app", port=fastapi_port, log_level="info")
     server = uvicorn.Server(config)
