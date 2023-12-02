@@ -1,7 +1,7 @@
 from random import uniform
 from time import sleep
 
-from config import db_name, data_col_name
+from config import db_name, data_col_name, key_col_name
 from data_process import ReverseIndex
 from database import MongoDB
 from log_lg import ManageLog
@@ -16,7 +16,9 @@ class Task:
     @staticmethod
     def mongodb() -> None:
         with MongoDB(db_name, data_col_name) as db:
-            del_repeat(db.col)
+            del_repeat(db.col, 'href', data_col_name)
+        with MongoDB(db_name, key_col_name) as db:
+            del_repeat(db.col, 'key', key_col_name)
 
     @staticmethod
     def make_index() -> None:
