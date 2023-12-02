@@ -1,19 +1,19 @@
 import os
 
-import jieba
 import uvicorn
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from jieba import lcut_for_search
 from loguru import logger
 
-from config import fastapi_port
-from data_process import remove_stop_words, tfidf
+from config import fastapi_port, db_name, data_col_name
+from data_process import remove_stop_words, TFIDF
 from database import MongoDB
+from log_lg import ServerLog
 from mongodb import search_data, save_data, creat_index
 from spider import get_bing_response, get_other_page_response, parse_page_url, parse_bing_response
-from log_lg import ServerLog
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -39,13 +39,13 @@ async def get_show(request: Request):
 
 @app.post("/search/", response_class=JSONResponse)
 async def search(q: str = Form()) -> dict[str, str | int]:
-    with MongoDB() as db:
+    with MongoDB(db_name, data_col_name) as db:
         col = db.col
 
         if not q:
             not_question()
 
-        list_question = jieba.lcut(q)
+        list_question = lcut_for_search(q)
         list_question = remove_stop_words(list_question)
         temp_results = []
         temp_results_rank = []
@@ -60,9 +60,9 @@ async def search(q: str = Form()) -> dict[str, str | int]:
                     for result in results:
                         temp_results.append(result)
 
-                texts = [str(doc["title"]) + " " + str(doc["description"]) + " " + str(doc["word"]) for doc in
+                texts = [str(doc["title"]) + " " + str(doc["description"]) + " " + str(doc["keywords"]) for doc in
                          temp_results]
-                ranked_indices = tfidf(texts, list_question)
+                ranked_indices = TFIDF(texts, list_question)
 
                 for rank, index in enumerate(ranked_indices):
                     temp_results_rank.append(temp_results[index])
@@ -91,8 +91,8 @@ async def search(q: str = Form()) -> dict[str, str | int]:
             for result in results:
                 temp_results.append(result)
 
-        texts = [str(doc["title"]) + " " + str(doc["description"]) + " " + str(doc["word"]) for doc in temp_results]
-        ranked_indices = tfidf(texts, list_question)
+        texts = [str(doc["title"]) + " " + str(doc["description"]) + " " + str(doc["keywords"]) for doc in temp_results]
+        ranked_indices = TFIDF(texts, list_question)
 
         for rank, index in enumerate(ranked_indices):
             temp_results_rank.append(temp_results[index])
@@ -104,7 +104,7 @@ async def search(q: str = Form()) -> dict[str, str | int]:
 
 if __name__ == "__main__":
     ServerLog()
-    with MongoDB() as db:
+    with MongoDB(db_name, data_col_name) as db:
         creat_index(db.col)
     config = uvicorn.Config("server:app", port=fastapi_port, log_level="info")
     server = uvicorn.Server(config)
