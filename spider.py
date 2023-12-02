@@ -1,7 +1,7 @@
+import multiprocessing
 import pickle
 import random
 import time
-import multiprocessing
 from collections import deque
 from typing import Union, Any
 
@@ -10,18 +10,18 @@ from bs4 import BeautifulSoup
 from loguru import logger
 from lxml import etree
 
-from config import engine_name_en, bing_api, wiki, target_depth
+from config import engine_name_en, bing_api, wiki, target_depth, db_name, data_col_name
 from database import MongoDB
+from log_lg import SpiderLog
 from mongodb import save_data
 from robots import RobotsParser
-from log_lg import SpiderLog
 
 headers = {
     'User-Agent': engine_name_en
 }
 
 
-def status_code_is_200(url):
+def status_code_is_200(url: str) -> bool:
     try:
         res = requests.get(url, headers=headers).status_code
     except Exception:
@@ -55,7 +55,7 @@ def parse_bing_response(text: str) -> list[dict]:
                 "title": title,
                 "description": description,
                 "href": href,
-                "word": ""
+                "keywords": ""
             })
         except IndexError as e:
             logger.error(f'解析必应响应出错:{e}')
@@ -113,7 +113,7 @@ def get_keywords_and_description(url: str) -> Union[list[dict[str, str | None]],
 
             datas.append({
                 "title": title,
-                "word": keywords_content,
+                "keywords": keywords_content,
                 "description": description_content,
                 "href": url
             })
@@ -171,7 +171,7 @@ def load_bfs_state(file_name: str) -> tuple[Any, Any, Any] | tuple[None, None, N
 def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
     visited, get, queue = load_bfs_state(file_name) or (set(), set(), deque([(start, 0)]))
     robots_parser = RobotsParser(user_agent=engine_name_en)
-    with MongoDB() as db:
+    with MongoDB(db_name, data_col_name) as db:
         col = db.col
 
         while queue:
