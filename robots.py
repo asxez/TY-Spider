@@ -14,7 +14,9 @@ class RobotsParser:
     def fetch_robots_txt(self, base_url: str) -> str:
         try:
             url = urljoin(base_url, "/robots.txt")
-            res = requests.get(url, headers={'user-agent': self.user_agent})
+            res = requests.get(url, headers={'user-agent': self.user_agent}, timeout=3)
+            if res.status_code != 200:
+                return ""
             res.raise_for_status()
             return res.text
         except Exception as e:
@@ -54,12 +56,3 @@ class RobotsParser:
                 if url.startswith(urljoin(base_url, path)):
                     return True
         return True
-
-
-if __name__ == '__main__':
-    robots = RobotsParser()
-    boo = robots.can_crawl('https://www.baidu.com')
-    if boo:
-        print('ok')
-    else:
-        print('no')
