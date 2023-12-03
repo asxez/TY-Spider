@@ -4,6 +4,7 @@ import random
 import time
 from collections import deque
 from typing import Union, Any
+from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -14,11 +15,62 @@ from config import engine_name_en, bing_api, wiki, target_depth, db_name, data_c
 from database import MongoDB
 from log_lg import SpiderLog
 from mongodb import save_data
-from robots import RobotsParser
 
 _headers = {
     'User-Agent': engine_name_en
 }
+
+
+class RobotsParser:
+    def __init__(self, user_agent: str = engine_name_en):
+        self.user_agent = user_agent
+        self.rules = {}
+
+    def fetch_robots_txt(self, base_url: str) -> str:
+        try:
+            url = urljoin(base_url, "/robots.txt")
+            res = requests.get(url, headers={'user-agent': self.user_agent}, timeout=3)
+            if res.status_code != 200:
+                return ""
+            res.raise_for_status()
+            return res.text
+        except Exception as e:
+            logger.error(f'获取robots.txt文件时出错：{e}')
+            return ""
+
+    def parser_robots_txt(self, robots_txt: str) -> None:
+        lines = robots_txt.split('\n')
+        current_agent = None
+
+        for line in lines:
+            line = line.strip()
+
+            if line.startswith('User-agent:'):
+                current_agent = line.split(': ')[-1]
+                self.rules[current_agent] = {'allow': [], 'disallow': []}
+            elif line.startswith('Disallow:'):
+                if current_agent is not None:
+                    self.rules[current_agent]['disallow'].append(line.split(': ')[-1])
+            elif line.startswith('Allow:'):
+                if current_agent is not None:
+                    self.rules[current_agent]['allow'].append(line.split(': ')[-1])
+
+    def can_crawl(self, url: str) -> bool:
+        parser_url = urlparse(url)
+        base_url = f'{parser_url.scheme}://{parser_url.netloc}'
+
+        if base_url not in self.rules:
+            robots_txt = self.fetch_robots_txt(base_url)
+            self.parser_robots_txt(robots_txt)
+        if base_url in self.rules:
+            rules = self.rules[base_url]
+            for path in rules['disallow']:
+                if url.startswith(urljoin(base_url, path)):
+                    return False
+            for path in rules['allow']:
+                if url.startswith(urljoin(base_url, path)):
+                    return True
+        return True
 
 
 def get_bing_response(question: Any) -> str:
@@ -136,8 +188,8 @@ def in_wiki(query: str) -> bool:
         logger.error(f'检测维基百科收录出现错误{e}')
 
 
-def _save_bfs_state(visited: set, get: set, queue: deque, file_name: str) -> None:
-    state_data = (visited, get, queue)
+def _save_bfs_state(visited: set, queue: deque, file_name: str) -> None:
+    state_data = (visited, queue)
     try:
         with open(f'./temp/{file_name}.pkl', 'wb') as f:
             pickle.dump(state_data, f)
@@ -145,20 +197,20 @@ def _save_bfs_state(visited: set, get: set, queue: deque, file_name: str) -> Non
         logger.error(f'保存pkl文件失败：{e}')
 
 
-def _load_bfs_state(file_name: str) -> tuple[Any, Any, Any] | tuple[None, None, None]:
+def _load_bfs_state(file_name: str) -> tuple[Any, Any] | tuple[None, None]:
     try:
         with open(f'./temp/{file_name}.pkl', 'rb') as f:
-            visited, get, queue = pickle.load(f)
-        if visited and get and queue:
-            return visited, get, queue
+            visited, queue = pickle.load(f)
+        if visited and queue:
+            return visited, queue
         else:
-            return None, None, None
+            return None, None
     except Exception as e:
         logger.error(f'加载bfs状态时出错：{e}')
 
 
 def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
-    visited, get, queue = _load_bfs_state(file_name) or (set(), set(), deque([(start, 0)]))
+    visited, queue = _load_bfs_state(file_name) or (set(), deque([(start, 0)]))
     robots_parser = RobotsParser(user_agent=engine_name_en)
     with MongoDB(db_name, data_col_name) as db:
         col = db.col
@@ -183,9 +235,6 @@ def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
                         link = 'http' + link.split('http')[2]  # 获取到的链接存在一点问题，暂时用这个方法解决
                     except IndexError:
                         pass
-                    if link in get:
-                        continue
-                    get.add(link)
                     queue.append((link, depth + 1))
                     if ('wiki' in link and '.org' in link) or (not link.startswith('http')):  # 去除维基百科和非链接
                         continue
@@ -193,7 +242,7 @@ def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
                     if data is None:
                         continue
                     save_data(data, col)
-                _save_bfs_state(visited, get, queue, file_name)
+                _save_bfs_state(visited, queue, file_name)
                 time.sleep(random.uniform(1, 2))
             else:
                 logger.warning(f'{url}不允许爬')
@@ -204,7 +253,7 @@ if __name__ == '__main__':
     SpiderLog()
 
     processes = []
-    p2 = multiprocessing.Process(target=bfs, args=("https://zh.wikipedia.org", "wiki", target_depth))
+    p2 = multiprocessing.Process(target=bfs, args=(wiki, "wiki", target_depth))
     processes.append(p2)
     p2.start()
 
