@@ -17,21 +17,21 @@ class ReverseIndex:
         self.index = defaultdict()
 
     @cost_time
-    def build_index(self, doc: list) -> bool:
+    def build_index(self, doc: list, rank: int) -> bool:
         if len(doc) < 20:
             return False
         words = []
         for doc_id, data in enumerate(doc):
             try:
                 words.extend(remove_stop_words(lcut_for_search(data['title'])))
-                words.extend(remove_stop_words(lcut_for_search(data['keywords'])))
+                words.extend(remove_stop_words(lcut_for_search(data['word'])))
                 words.extend(remove_stop_words(lcut_for_search(data['description'])))
             except Exception:
                 continue
             for word in words:
                 if word not in self.index:
                     self.index[word] = []
-                self.index[word].append(doc_id)
+                self.index[word].append(20 * rank + doc_id)
         return True
 
     @cost_time
