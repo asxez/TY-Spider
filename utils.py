@@ -24,7 +24,7 @@ def check_lang(s: str) -> tuple[Any, Any]:
             fasttext.FastText.eprint = lambda *args, **kwargs: None
         except Exception:
             pass
-        _lang_model = fasttext.load_model('lid.176.bin')
+        _lang_model = fasttext.load_model('lid.176.ftz')
     res = _lang_model.predict(s.replace('\n', ''))
     lang = res[0][0][9:]
     like = res[1][0]
