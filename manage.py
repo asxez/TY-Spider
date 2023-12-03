@@ -27,7 +27,7 @@ class Task:
         with MongoDB(db_name, data_col_name) as db:
             a = list(find_all(db.col))
         while True:
-            ans = index.build_index(a[i * 20 - 20:i * 20])
+            ans = index.build_index(a[i * 20 - 20:i * 20], i - 1)
             if ans:
                 index.save_index()
                 i = i + 1
