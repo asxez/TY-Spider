@@ -1,10 +1,14 @@
 <div align="center">
 <h1 align="center">TY Spider</h1>
 
+
 [![Python](https://img.shields.io/badge/Python-3.10%2B-yellow)]()
-[![LICENSE](https://img.shields.io/badge/License-gpl3.0-red
-)]()
+[![LICENSE](https://img.shields.io/badge/License-gpl3.0-red)]()
+
 <p>或许我可以称呼它为天眼搜索引擎</p>
+
+![Logo](/static/images/logo.png)
+
 </div>
 
 ## 🎈天眼搜索引擎
@@ -14,7 +18,7 @@
 
 最后，我发明了它，**TY Spider**，相比这个名字，我更喜欢叫它天眼搜索引擎。
 
-天眼搜索引擎是一款轻量级的搜索引擎，你可以很轻松方便的部署在服务器上。
+天眼搜索引擎是一款轻量级的搜索引擎，你可以很轻松方便地部署在服务器上。
 
 ## 🧨环境需求
 
@@ -39,5 +43,6 @@
 GPL3.0
 
 ## 🎁支持
+
 请提出你的想法！
 另外，如果觉得这个仓库有用的话，就请点个star噢
