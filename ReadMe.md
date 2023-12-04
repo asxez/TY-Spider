@@ -1,10 +1,14 @@
 <div align="center">
 <h1 align="center">TY Spider</h1>
 
+
 [![Python](https://img.shields.io/badge/Python-3.10%2B-yellow)]()
-[![LICENSE](https://img.shields.io/badge/License-gpl3.0-red
-)]()
+[![LICENSE](https://img.shields.io/badge/License-gpl3.0-red)]()
+
 <p>或许我可以称呼它为天眼搜索引擎</p>
+
+![Logo](/static/images/logo.png)
+
 </div>
 
 ## 🎈天眼搜索引擎
