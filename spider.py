@@ -75,7 +75,7 @@ class RobotsParser:
 
 def get_bing_response(question: Any) -> str:
     try:
-        response = requests.get(bing_api.format(q=question), headers=_headers).text
+        response = requests.get(bing_api.format(q=question), headers=_headers, timeout=4).text
     except Exception as e:
         logger.error(f'获取必应响应出错：{e}')
     else:
