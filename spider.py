@@ -11,10 +11,11 @@ from bs4 import BeautifulSoup
 from loguru import logger
 from lxml import etree
 
-from config import engine_name_en, bing_api, wiki, target_depth, db_name, data_col_name
+from config import engine_name_en, bing_api, wiki, target_depth, db_name, data_col_name, spider_check_memory
 from database import MongoDB
 from log_lg import SpiderLog
 from mongodb import save_data
+from utils import Memory, Schedule
 
 _headers = {
     'User-Agent': engine_name_en
@@ -23,13 +24,13 @@ _headers = {
 
 class RobotsParser:
     def __init__(self, user_agent: str = engine_name_en):
-        self.user_agent = user_agent
-        self.rules = {}
+        self._user_agent = user_agent
+        self._rules = {}
 
-    def fetch_robots_txt(self, base_url: str) -> str:
+    def _fetch_robots_txt(self, base_url: str) -> str:
         try:
             url = urljoin(base_url, "/robots.txt")
-            res = requests.get(url, headers={'user-agent': self.user_agent}, timeout=3)
+            res = requests.get(url, headers={'user-agent': self._user_agent}, timeout=3)
             if res.status_code != 200:
                 return ""
             res.raise_for_status()
@@ -38,7 +39,7 @@ class RobotsParser:
             logger.error(f'获取robots.txt文件时出错：{e}')
             return ""
 
-    def parser_robots_txt(self, robots_txt: str) -> None:
+    def _parser_robots_txt(self, robots_txt: str) -> None:
         lines = robots_txt.split('\n')
         current_agent = None
 
@@ -47,23 +48,23 @@ class RobotsParser:
 
             if line.startswith('User-agent:'):
                 current_agent = line.split(': ')[-1]
-                self.rules[current_agent] = {'allow': [], 'disallow': []}
+                self._rules[current_agent] = {'allow': [], 'disallow': []}
             elif line.startswith('Disallow:'):
                 if current_agent is not None:
-                    self.rules[current_agent]['disallow'].append(line.split(': ')[-1])
+                    self._rules[current_agent]['disallow'].append(line.split(': ')[-1])
             elif line.startswith('Allow:'):
                 if current_agent is not None:
-                    self.rules[current_agent]['allow'].append(line.split(': ')[-1])
+                    self._rules[current_agent]['allow'].append(line.split(': ')[-1])
 
     def can_crawl(self, url: str) -> bool:
         parser_url = urlparse(url)
         base_url = f'{parser_url.scheme}://{parser_url.netloc}'
 
-        if base_url not in self.rules:
-            robots_txt = self.fetch_robots_txt(base_url)
-            self.parser_robots_txt(robots_txt)
-        if base_url in self.rules:
-            rules = self.rules[base_url]
+        if base_url not in self._rules:
+            robots_txt = self._fetch_robots_txt(base_url)
+            self._parser_robots_txt(robots_txt)
+        if base_url in self._rules:
+            rules = self._rules[base_url]
             for path in rules['disallow']:
                 if url.startswith(urljoin(base_url, path)):
                     return False
@@ -82,6 +83,20 @@ def get_bing_response(question: Any) -> str:
         return response
 
 
+class ParserLink:
+    def __init__(self, url):
+        self.netloc = None
+        self.scheme = None
+        self.path = None
+        self._parser(url)
+
+    def _parser(self, url):
+        res = urlparse(url)
+        self.netloc = res.netloc
+        self.scheme = res.scheme
+        self.path = res.path
+
+
 def parse_bing_response(text: str) -> list[dict]:
     datas = []
     doc = etree.HTML(text)
@@ -96,7 +111,8 @@ def parse_bing_response(text: str) -> list[dict]:
                 "title": title,
                 "description": description,
                 "href": href,
-                "keywords": ""
+                "keywords": "",
+                "netloc": ParserLink(href).netloc
             })
         except IndexError as e:
             logger.error(f'解析必应响应出错:{e}')
@@ -156,7 +172,8 @@ def get_keywords_and_description(url: str) -> Union[list[dict[str, str | None]],
                 "title": title,
                 "keywords": keywords_content,
                 "description": description_content,
-                "href": url
+                "href": url,
+                "netloc": ParserLink(url).netloc
             })
             return datas
     except Exception as e:
@@ -216,6 +233,11 @@ def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
         col = db.col
 
         while queue:
+            if spider_check_memory:
+                Schedule().schedule_interval(
+                    [{'function': Memory().canuse_memory_percentage}]
+                )
+
             url, depth = queue.popleft()
 
             if robots_parser.can_crawl(url):

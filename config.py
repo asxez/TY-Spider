@@ -15,6 +15,8 @@ db_name: str = 'TY_Spider'
 data_col_name: str = 'sites'
 key_col_name: str = 'keys'
 
+spider_check_memory = True  # 爬虫模块是否检测内存占用情况
+
 fastapi_port: int = 1314
 
 stop_words: list[str] = ['', '.', ',', '$', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '?', '_', '“', '”', '、',
