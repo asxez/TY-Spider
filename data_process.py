@@ -58,6 +58,11 @@ class ReverseIndex:
         return self.index
 
 
+class ReverseLink:
+    def __init__(self):
+        pass
+
+
 def TFIDF(texts: list, querys: list) -> Union[Any, None]:
     vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform(texts)
