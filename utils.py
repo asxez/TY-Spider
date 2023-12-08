@@ -1,9 +1,23 @@
+import ctypes
+import sys
+import time
+from dataclasses import dataclass
+from datetime import date
 from time import perf_counter
 from typing import Callable, Any
 
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 from loguru import logger
 
 _lang_model = None
+
+
+@dataclass
+class _C_U:
+    c_ulong = ctypes.c_ulong
+    c_ulonglong = ctypes.c_ulonglong
 
 
 def cost_time(func: Callable) -> Callable:
@@ -29,3 +43,92 @@ def check_lang(s: str) -> tuple[Any, Any]:
     lang = res[0][0][9:]
     like = res[1][0]
     return lang, like
+
+
+class Schedule:
+    def __init__(self):
+        self.results = {}
+
+    @staticmethod
+    def _logging(function: Callable) -> Callable:
+        def wrapper(*args, **kwargs):
+            now_time = time.localtime()
+            logger.info(f"{function.__name__}: {date.today()} {now_time.tm_hour}:{now_time.tm_min}")
+            return function(*args, **kwargs)
+
+        return wrapper
+
+    def schedule_cron(self, funcs: list[dict[str, Callable | int | tuple]]) -> None:
+        scheduler = BackgroundScheduler()
+        for func in funcs:
+            wrapped_func = self._logging(func['function'])
+            scheduler.add_job(
+                wrapped_func,
+                trigger=CronTrigger(hour=func['hour'], minute=func['minute']),
+                args=func['args']
+            )
+        scheduler.start()
+
+        try:
+            while True:
+                time.sleep(1)
+        except (KeyboardInterrupt, SystemExit):
+            scheduler.shutdown()
+
+    def schedule_interval(self, funcs: list[dict[str, Callable]]) -> None:
+        scheduler = BackgroundScheduler()
+        for func in funcs:
+            wrapped_func = self._logging(func['function'])
+
+            def _store_result():
+                result = wrapped_func()
+                self.results['percentage'] = result
+
+            scheduler.add_job(
+                _store_result,
+                trigger=IntervalTrigger(seconds=180),
+            )
+        scheduler.start()
+        try:
+            while True:
+                if 'is_ok' in self.results:
+                    if self.results['percentage'] > 0.1:
+                        break
+                time.sleep(1)
+        except (KeyboardInterrupt, SystemExit):
+            scheduler.shutdown()
+
+
+class Memory:
+    @staticmethod
+    def get_memory_info() -> dict | bool:
+        if sys.platform == 'win32':
+            kernel32 = ctypes.windll.kernel32
+
+            class MEMORYSTATUSEX(ctypes.Structure):
+                _fields_ = [
+                    ("dwLength", _C_U.c_ulong),
+                    ("dwMemoryLoad", _C_U.c_ulong),
+                    ("ullTotalPhys", _C_U.c_ulonglong),
+                    ("ullAvailPhys", _C_U.c_ulonglong),
+                    ("ullTotalPageFile", _C_U.c_ulonglong),
+                    ("ullAvailPageFile", _C_U.c_ulonglong),
+                    ("ullTotalVirtual", _C_U.c_ulonglong),
+                    ("ullAvailVirtual", _C_U.c_ulonglong),
+                    ("sullAvailExtendedVirtual", _C_U.c_ulonglong)
+                ]
+
+            memory_status = MEMORYSTATUSEX()
+            memory_status.dwLength = ctypes.sizeof(memory_status)
+            kernel32.GlobalMemoryStatusEx(ctypes.byref(memory_status))
+
+            meminfo = {
+                "TPM": memory_status.ullTotalPhys,
+                "APM": memory_status.ullAvailPhys,
+            }
+            return meminfo
+        return False
+
+    def canuse_memory_percentage(self) -> int:
+        memory_info = self.get_memory_info()
+        return round((memory_info['APM'] / (1024 ** 3)) / (memory_info['TPM'] / (1024 ** 3)), 3)
