@@ -1,5 +1,4 @@
-from manage import *
-from schedule import *
+from utils import *
 
 # a = [
 #     {
@@ -70,12 +69,23 @@ from schedule import *
 #     print(reverse.index)
 
 
-task = Task()
+# task = Task()
+#
+# task2 = {
+#     'function': task.make_index,
+#     'hour': 23,
+#     'minute': 53,
+#     'args': None
+# }
+# Schedule().schedule_cron([task2])
 
-task2 = {
-    'function': task.make_index,
-    'hour': 23,
-    'minute': 53,
-    'args': None
-}
-schedule([task2])
+def t():
+    return 1
+
+
+a = Schedule()
+a.schedule_interval([{
+    'function': t,
+}])
+print(a.results)
+print(666)
