@@ -4,14 +4,15 @@ import time
 from dataclasses import dataclass
 from datetime import date
 from time import perf_counter
-from typing import Callable, Any
+from typing import Callable
+from urllib.parse import urlparse
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from loguru import logger
 
-_lang_model = None
+_lang_model = None  # 全局变量，以免重复加载模型
 
 
 @dataclass
@@ -30,7 +31,7 @@ def cost_time(func: Callable) -> Callable:
     return fun
 
 
-def check_lang(s: str) -> tuple[Any, Any]:
+def check_lang(s: str) -> tuple[str, float]:
     global _lang_model
     if not _lang_model:
         import fasttext
@@ -42,10 +43,17 @@ def check_lang(s: str) -> tuple[Any, Any]:
     res = _lang_model.predict(s.replace('\n', ''))
     lang = res[0][0][9:]
     like = res[1][0]
-    return lang, like
+    return str(lang), float(like)
 
 
 class Schedule:
+    """
+    定时模块
+    _logging()  输出日志
+    schedule_cron()  Linux-cron类型定时
+    schedule_interval()  间隔时间定时
+    """
+
     def __init__(self):
         self.results = {}
 
@@ -75,18 +83,19 @@ class Schedule:
         except (KeyboardInterrupt, SystemExit):
             scheduler.shutdown()
 
-    def schedule_interval(self, funcs: list[dict[str, Callable]]) -> None:
+    def schedule_interval(self, funcs: list[dict[str, Callable | int]]) -> None:
         scheduler = BackgroundScheduler()
         for func in funcs:
             wrapped_func = self._logging(func['function'])
 
+            # 因为需要将func输出的结果保存，因此构造这个函数
             def _store_result():
                 result = wrapped_func()
                 self.results['percentage'] = result
 
             scheduler.add_job(
                 _store_result,
-                trigger=IntervalTrigger(seconds=180),
+                trigger=IntervalTrigger(seconds=func['seconds']),
             )
         scheduler.start()
         try:
@@ -132,3 +141,17 @@ class Memory:
     def canuse_memory_percentage(self) -> int:
         memory_info = self.get_memory_info()
         return round((memory_info['APM'] / (1024 ** 3)) / (memory_info['TPM'] / (1024 ** 3)), 3)
+
+
+class ParserLink:
+    def __init__(self, url):
+        self.netloc = None
+        self.scheme = None
+        self.path = None
+        self._parser(url)
+
+    def _parser(self, url):
+        res = urlparse(url)
+        self.netloc = res.netloc
+        self.scheme = res.scheme
+        self.path = res.path
