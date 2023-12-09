@@ -15,7 +15,7 @@ from config import engine_name_en, bing_api, wiki, target_depth, db_name, data_c
 from database import MongoDB
 from log_lg import SpiderLog
 from mongodb import save_data
-from utils import Memory, Schedule
+from utils import Memory, Schedule, check_lang, ParserLink
 
 _headers = {
     'User-Agent': engine_name_en
@@ -81,20 +81,6 @@ def get_bing_response(question: Any) -> str:
         logger.error(f'获取必应响应出错：{e}')
     else:
         return response
-
-
-class ParserLink:
-    def __init__(self, url):
-        self.netloc = None
-        self.scheme = None
-        self.path = None
-        self._parser(url)
-
-    def _parser(self, url):
-        res = urlparse(url)
-        self.netloc = res.netloc
-        self.scheme = res.scheme
-        self.path = res.path
 
 
 def parse_bing_response(text: str) -> list[dict]:
@@ -168,13 +154,25 @@ def get_keywords_and_description(url: str) -> Union[list[dict[str, str | None]],
                 logger.info(f'{url} 的title为空')
                 return None
 
-            datas.append({
-                "title": title,
-                "keywords": keywords_content,
-                "description": description_content,
-                "href": url,
-                "netloc": ParserLink(url).netloc
-            })
+            lang, weight = check_lang(title + " " + keywords_content + " " + description_content)
+            if lang == 'zh':
+                datas.append({
+                    "title": title,
+                    "keywords": keywords_content,
+                    "description": description_content,
+                    "href": url,
+                    "weight": 0.5,
+                    "netloc": ParserLink(url).netloc
+                })
+            else:
+                datas.append({
+                    "title": title,
+                    "keywords": keywords_content,
+                    "description": description_content,
+                    "href": url,
+                    "weight": 1 - weight,
+                    "netloc": ParserLink(url).netloc
+                })
             return datas
     except Exception as e:
         logger.error(f"获取 {url} 信息出错：{e}")
@@ -235,7 +233,12 @@ def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
         while queue:
             if spider_check_memory:
                 Schedule().schedule_interval(
-                    [{'function': Memory().canuse_memory_percentage}]
+                    [
+                        {
+                            'function': Memory().canuse_memory_percentage,
+                            'seconds': 180
+                        }
+                    ]
                 )
 
             url, depth = queue.popleft()
