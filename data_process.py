@@ -14,6 +14,7 @@ from utils import cost_time
 
 class ReverseIndex:
     def __init__(self):
+        # {'key': [index]}
         self.index = defaultdict()
 
     @cost_time
@@ -24,7 +25,7 @@ class ReverseIndex:
         for doc_id, data in enumerate(doc):
             try:
                 words.extend(remove_stop_words(lcut_for_search(data['title'])))
-                words.extend(remove_stop_words(lcut_for_search(data['word'])))
+                words.extend(remove_stop_words(lcut_for_search(data['keywords'])))
                 words.extend(remove_stop_words(lcut_for_search(data['description'])))
             except Exception:
                 continue
@@ -51,7 +52,7 @@ class ReverseIndex:
         result = set()
         for word in query_words:
             if word in self.index:
-                result.update(self.index[word])
+                result.update(self.index[word])  #合并集合
         return list(result)
 
     def get_index(self) -> dict:
