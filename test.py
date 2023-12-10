@@ -86,6 +86,6 @@ def t():
 a = Schedule()
 a.schedule_interval([{
     'function': t,
-}])
+}], 0.1)
 print(a.results)
 print(666)
