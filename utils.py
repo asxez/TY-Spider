@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 from datetime import date
 from time import perf_counter
-from typing import Callable
+from typing import Callable, Any, Self
 from urllib.parse import urlparse
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -66,7 +66,7 @@ class Schedule:
 
         return wrapper
 
-    def schedule_cron(self, funcs: list[dict[str, Callable | int | tuple]]) -> None:
+    def schedule_cron(self: Self, funcs: list[dict[str, Callable | int | tuple]]) -> None:
         scheduler = BackgroundScheduler()
         for func in funcs:
             wrapped_func = self._logging(func['function'])
@@ -83,15 +83,15 @@ class Schedule:
         except (KeyboardInterrupt, SystemExit):
             scheduler.shutdown()
 
-    def schedule_interval(self, funcs: list[dict[str, Callable | int]]) -> None:
+    def schedule_interval(self: Self, funcs: list[dict[str, Callable | int]], result: Any) -> None:
         scheduler = BackgroundScheduler()
         for func in funcs:
             wrapped_func = self._logging(func['function'])
 
             # 因为需要将func输出的结果保存，因此构造这个函数
-            def _store_result():
-                result = wrapped_func()
-                self.results['percentage'] = result
+            def _store_result() -> None:
+                temp_result = wrapped_func()
+                self.results['percentage'] = temp_result
 
             scheduler.add_job(
                 _store_result,
@@ -101,7 +101,7 @@ class Schedule:
         try:
             while True:
                 if 'is_ok' in self.results:
-                    if self.results['percentage'] > 0.1:
+                    if self.results['percentage'] > result:
                         break
                 time.sleep(1)
         except (KeyboardInterrupt, SystemExit):
@@ -138,7 +138,7 @@ class Memory:
             return meminfo
         return False
 
-    def canuse_memory_percentage(self) -> int:
+    def canuse_memory_percentage(self: Self) -> int:
         memory_info = self.get_memory_info()
         return round((memory_info['APM'] / (1024 ** 3)) / (memory_info['TPM'] / (1024 ** 3)), 3)
 
@@ -150,7 +150,7 @@ class ParserLink:
         self.path = None
         self._parser(url)
 
-    def _parser(self, url):
+    def _parser(self: Self, url) -> None:
         res = urlparse(url)
         self.netloc = res.netloc
         self.scheme = res.scheme

@@ -3,7 +3,7 @@ import pickle
 import random
 import time
 from collections import deque
-from typing import Union, Any
+from typing import Union, Any, Self
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -27,7 +27,7 @@ class RobotsParser:
         self._user_agent = user_agent
         self._rules = {}
 
-    def _fetch_robots_txt(self, base_url: str) -> str:
+    def _fetch_robots_txt(self: Self, base_url: str) -> str:
         try:
             url = urljoin(base_url, "/robots.txt")
             res = requests.get(url, headers={'user-agent': self._user_agent}, timeout=3)
@@ -39,7 +39,7 @@ class RobotsParser:
             logger.error(f'获取robots.txt文件时出错：{e}')
             return ""
 
-    def _parser_robots_txt(self, robots_txt: str) -> None:
+    def _parser_robots_txt(self: Self, robots_txt: str) -> None:
         lines = robots_txt.split('\n')
         current_agent = None
 
@@ -56,7 +56,7 @@ class RobotsParser:
                 if current_agent is not None:
                     self._rules[current_agent]['allow'].append(line.split(': ')[-1])
 
-    def can_crawl(self, url: str) -> bool:
+    def can_crawl(self: Self, url: str) -> bool:
         parser_url = urlparse(url)
         base_url = f'{parser_url.scheme}://{parser_url.netloc}'
 
@@ -133,7 +133,7 @@ def get_other_page_response(urls: dict) -> list[list[dict]]:
     return datas
 
 
-def get_keywords_and_description(url: str) -> Union[list[dict[str, str | None]], None]:
+def get_keywords_and_description(url: str) -> Union[list[dict[str, Any]], None]:
     datas = []
     no_datas = ['', None, ' ']
     try:
@@ -238,7 +238,7 @@ def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
                             'function': Memory().canuse_memory_percentage,
                             'seconds': 180
                         }
-                    ]
+                    ], 0.1
                 )
 
             url, depth = queue.popleft()
