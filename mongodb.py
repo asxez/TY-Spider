@@ -78,3 +78,12 @@ def find_all(col: Collection) -> Cursor[Mapping[str, Any]]:
 def creat_index(col: Collection) -> None:
     index = [("description", ASCENDING), ("keywords", ASCENDING), ("title", ASCENDING)]
     col.create_index(index)
+
+
+@cost_time
+def update(col: Collection, query: dict[str, str], new_value: dict[dict[str, str]]) -> None:
+    result = col.update_one(query, new_value)
+    if result.modified_count > 0:
+        logger.info('数据更新成功')
+    else:
+        logger.warning('数据更新失败')

@@ -3,7 +3,7 @@ import pickle
 import random
 import time
 from collections import deque
-from typing import Union, Any, Self
+from typing import Union, Any
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from loguru import logger
 from lxml import etree
 
-from config import engine_name_en, bing_api, wiki, target_depth, db_name, data_col_name, spider_check_memory
+from config import engine_name_en, bing_api, wiki, bfs_depth, db_name, data_col_name, spider_check_memory
 from database import MongoDB
 from log_lg import SpiderLog
 from mongodb import save_data
@@ -27,7 +27,7 @@ class RobotsParser:
         self._user_agent = user_agent
         self._rules = {}
 
-    def _fetch_robots_txt(self: Self, base_url: str) -> str:
+    def _fetch_robots_txt(self, base_url: str) -> str:
         try:
             url = urljoin(base_url, "/robots.txt")
             res = requests.get(url, headers={'user-agent': self._user_agent}, timeout=3)
@@ -39,7 +39,7 @@ class RobotsParser:
             logger.error(f'获取robots.txt文件时出错：{e}')
             return ""
 
-    def _parser_robots_txt(self: Self, robots_txt: str) -> None:
+    def _parser_robots_txt(self, robots_txt: str) -> None:
         lines = robots_txt.split('\n')
         current_agent = None
 
@@ -56,7 +56,7 @@ class RobotsParser:
                 if current_agent is not None:
                     self._rules[current_agent]['allow'].append(line.split(': ')[-1])
 
-    def can_crawl(self: Self, url: str) -> bool:
+    def can_crawl(self, url: str) -> bool:
         parser_url = urlparse(url)
         base_url = f'{parser_url.scheme}://{parser_url.netloc}'
 
@@ -83,7 +83,7 @@ def get_bing_response(question: Any) -> str:
         return response
 
 
-def parse_bing_response(text: str) -> list[dict]:
+def parse_bing_response(text: str) -> list[dict[str, float | str | Any]]:
     datas = []
     doc = etree.HTML(text)
     elements = doc.xpath('//*[@id="b_results"]/li')
@@ -93,12 +93,24 @@ def parse_bing_response(text: str) -> list[dict]:
             description = element.xpath('./div[2]/p/text()')[0]
             title = element.xpath('./h2/a/text() | ./h2/a/strong/text()')
             title = "".join(title)
+            lang, weight = check_lang(title + " " + description)
+            if lang == 'zh':
+                datas.append({
+                    "title": title,
+                    "description": description,
+                    "href": href,
+                    "keywords": "",
+                    "netloc": ParserLink(href).netloc,
+                    "weight": 0.5
+                })
+                return datas
             datas.append({
                 "title": title,
                 "description": description,
                 "href": href,
                 "keywords": "",
-                "netloc": ParserLink(href).netloc
+                "netloc": ParserLink(href).netloc,
+                "weight": weight if weight > 0.5 else 1 - weight
             })
         except IndexError as e:
             logger.error(f'解析必应响应出错:{e}')
@@ -164,15 +176,15 @@ def get_keywords_and_description(url: str) -> Union[list[dict[str, Any]], None]:
                     "weight": 0.5,
                     "netloc": ParserLink(url).netloc
                 })
-            else:
-                datas.append({
-                    "title": title,
-                    "keywords": keywords_content,
-                    "description": description_content,
-                    "href": url,
-                    "weight": 1 - weight,
-                    "netloc": ParserLink(url).netloc
-                })
+                return datas
+            datas.append({
+                "title": title,
+                "keywords": keywords_content,
+                "description": description_content,
+                "href": url,
+                "weight": weight if weight < 0.5 else 1 - weight,
+                "netloc": ParserLink(url).netloc
+            })
             return datas
     except Exception as e:
         logger.error(f"获取 {url} 信息出错：{e}")
@@ -236,7 +248,7 @@ def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
                     [
                         {
                             'function': Memory().canuse_memory_percentage,
-                            'seconds': 180
+                            'seconds': 10
                         }
                     ], 0.1
                 )
@@ -252,6 +264,11 @@ def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
                 visited.add(url)
                 logger.info(f"深度：{depth}，链接：{url}，process：{multiprocessing.current_process().name}")
 
+                this_data = get_keywords_and_description(url)
+                if this_data is None:
+                    continue
+                weight = this_data[0]['weight'] if this_data[0]['weight'] >= 0.5 else 1 - this_data[0]['weight']  # 确保加权
+
                 links = get_links_from_url(url)
                 for link in links:
                     if link.startswith('/'):
@@ -266,6 +283,10 @@ def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
                     data = get_keywords_and_description(link)
                     if data is None:
                         continue
+                    if data[0]['weight'] == 0.5:  # 增权，是中文则增权更多，反之少
+                        data[0]['weight'] = (data[0]['weight'] + weight * 1.1) / 2
+                    else:
+                        data[0]['weight'] = (data[0]['weight'] + weight * 0.9) / 2
                     save_data(data, col)
                 _save_bfs_state(visited, queue, file_name)
                 time.sleep(random.uniform(1, 2))
@@ -278,11 +299,11 @@ if __name__ == '__main__':
     SpiderLog()
 
     processes = []
-    p2 = multiprocessing.Process(target=bfs, args=(wiki, "wiki", target_depth))
+    p2 = multiprocessing.Process(target=bfs, args=(wiki, "wiki", bfs_depth))
     processes.append(p2)
     p2.start()
 
-    p3 = multiprocessing.Process(target=bfs, args=("https://www.asxe.vip", 'asxe', target_depth))
+    p3 = multiprocessing.Process(target=bfs, args=("https://www.asxe.vip", 'asxe', bfs_depth))
     processes.append(p3)
     p3.start()
 
