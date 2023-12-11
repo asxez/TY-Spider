@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 from datetime import date
 from time import perf_counter
-from typing import Callable, Any, Self
+from typing import Callable, Any
 from urllib.parse import urlparse
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -66,7 +66,7 @@ class Schedule:
 
         return wrapper
 
-    def schedule_cron(self: Self, funcs: list[dict[str, Callable | int | tuple]]) -> None:
+    def schedule_cron(self, funcs: list[dict[str, Callable | int | tuple]]) -> None:
         scheduler = BackgroundScheduler()
         for func in funcs:
             wrapped_func = self._logging(func['function'])
@@ -83,7 +83,7 @@ class Schedule:
         except (KeyboardInterrupt, SystemExit):
             scheduler.shutdown()
 
-    def schedule_interval(self: Self, funcs: list[dict[str, Callable | int]], result: Any) -> None:
+    def schedule_interval(self, funcs: list[dict[str, Callable | int]], result: Any) -> None:
         scheduler = BackgroundScheduler()
         for func in funcs:
             wrapped_func = self._logging(func['function'])
@@ -100,7 +100,7 @@ class Schedule:
         scheduler.start()
         try:
             while True:
-                if 'is_ok' in self.results:
+                if 'percentage' in self.results:
                     if self.results['percentage'] > result:
                         break
                 time.sleep(1)
@@ -138,7 +138,7 @@ class Memory:
             return meminfo
         return False
 
-    def canuse_memory_percentage(self: Self) -> int:
+    def canuse_memory_percentage(self) -> int:
         memory_info = self.get_memory_info()
         return round((memory_info['APM'] / (1024 ** 3)) / (memory_info['TPM'] / (1024 ** 3)), 3)
 
@@ -150,7 +150,7 @@ class ParserLink:
         self.path = None
         self._parser(url)
 
-    def _parser(self: Self, url) -> None:
+    def _parser(self, url) -> None:
         res = urlparse(url)
         self.netloc = res.netloc
         self.scheme = res.scheme

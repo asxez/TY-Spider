@@ -1,6 +1,6 @@
 from collections import defaultdict
 from time import sleep
-from typing import Any, Union, Self
+from typing import Any, Union
 
 from jieba import lcut_for_search
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -18,7 +18,7 @@ class ReverseIndex:
         self.index = defaultdict()
 
     @cost_time
-    def build_index(self: Self, doc: list, rank: int) -> bool:
+    def build_index(self, doc: list, rank: int) -> bool:
         if len(doc) < 20:
             return False
         words = []
@@ -36,7 +36,7 @@ class ReverseIndex:
         return True
 
     @cost_time
-    def save_index(self: Self) -> None:
+    def save_index(self) -> None:
         with MongoDB(db_name, key_col_name) as db:
             for key, value in self.index.items():
                 save_data(
@@ -46,7 +46,7 @@ class ReverseIndex:
         sleep(2)
 
     @cost_time
-    def search(self: Self, query: str) -> list:
+    def search(self, query: str) -> list:
         query_words = lcut_for_search(query)
         query_words = remove_stop_words(query_words)
         result = set()
@@ -55,7 +55,7 @@ class ReverseIndex:
                 result.update(self.index[word])  #合并集合
         return list(result)
 
-    def get_index(self: Self) -> dict:
+    def get_index(self) -> defaultdict:
         return self.index
 
 
@@ -80,6 +80,6 @@ def TFIDF(texts: list, querys: list) -> Union[Any, None]:
     return ranked_indices
 
 
-def remove_stop_words(ori_list: list) -> list:
+def remove_stop_words(ori_list: list) -> list[str]:
     words = set(stop_words)
     return [item for item in ori_list if item not in words]
