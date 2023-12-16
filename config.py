@@ -15,6 +15,9 @@ db_name: str = 'TY_Spider'
 data_col_name: str = 'sites'
 key_col_name: str = 'keys'
 
+bloom_dataSize: int = 100000000  # 布隆过滤器数据量
+bloom_errorRate: float = 0.001  # 布隆过滤器错误率
+
 spider_check_memory = True  # 爬虫模块是否检测内存占用情况
 
 fastapi_port: int = 1314
