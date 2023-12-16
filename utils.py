@@ -1,4 +1,7 @@
+import copy
 import ctypes
+import math
+import pickle
 import sys
 import time
 from dataclasses import dataclass
@@ -11,6 +14,16 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from loguru import logger
+
+try:
+    import bitarray
+except ImportError:
+    raise ImportError('Requires bitarray')
+
+try:
+    import mmh3
+except ImportError:
+    raise ImportError('Requires mmh3')
 
 _lang_model = None  # 全局变量，以免重复加载模型
 
@@ -86,7 +99,10 @@ class Schedule:
     def schedule_interval(self, funcs: list[dict[str, Callable | int]], result: Any) -> None:
         scheduler = BackgroundScheduler()
         for func in funcs:
-            wrapped_func = self._logging(func['function'])
+            if func['seconds'] > 60:  # 避免频繁的日志输出
+                wrapped_func = self._logging(func['function'])
+            else:
+                wrapped_func = func['function']
 
             # 因为需要将func输出的结果保存，因此构造这个函数
             def _store_result() -> None:
@@ -155,3 +171,114 @@ class ParserLink:
         self.netloc = res.netloc
         self.scheme = res.scheme
         self.path = res.path
+
+
+class BloomFilter:
+
+    def __init__(self, data_size: int, error_rate: float = 0.001):
+        """
+        :param data_size: 所需存放数据的数量
+        :param error_rate:  误报率，默认0.001
+        """
+
+        if not data_size > 0:
+            raise ValueError("数据量必须大于0")
+        if not (0 < error_rate < 1):
+            raise ValueError("错误率需在0到1之间")
+
+        self._data_size = data_size
+        self._error_rate = error_rate
+        self._file_name = 'bloom.pkl'
+
+        self._init_filter()
+
+    def _init_filter(self) -> None:
+        try:
+            with open(f'./temp/{self._file_name}', 'rb') as file:
+                data = pickle.load(file)
+            self.__dict__.update(data)
+
+        except (FileNotFoundError, pickle.UnpicklingError):
+            bit_num, hash_num = self._adjust_param(self._data_size, self._error_rate)
+            self._bit_array = bitarray.bitarray(bit_num)
+            self._bit_array.setall(0)
+            self._bit_num = bit_num
+            self._hash_num = hash_num
+
+            # 将哈希种子固定为 1 - hash_num （预留持久化过滤的可能）
+            self._hash_seed = [i for i in range(1, hash_num + 1)]
+
+            # 已存数据量
+            self._data_count: int = 0
+            self._save_state()
+
+    @cost_time
+    def _save_state(self) -> None:
+        with open(f'./temp/{self._file_name}', 'wb') as file:
+            pickle.dump(self.__dict__, file)
+
+    def add(self, key: str) -> bool:
+        for times in range(self._hash_num):
+            key_hashed_idx = mmh3.hash(key, self._hash_seed[times]) % self._bit_num
+            self._bit_array[key_hashed_idx] = 1
+
+        self._data_count += 1
+        self._save_state()
+        return True
+
+    def _contains(self, key: str) -> bool:
+        """
+        判断该值是否存在
+        有任意一位为0 则肯定不存在
+        """
+        for times in range(self._hash_num):
+            key_hashed_idx = mmh3.hash(key, self._hash_seed[times]) % self._bit_num
+            if not self._bit_array[key_hashed_idx]:
+                return False
+        return True
+
+    def copy(self) -> 'BloomFilter':
+        """
+        :return: 返回一个完全相同的布隆过滤器实例
+
+        复制一份布隆过滤器的实例
+        """
+        new_filter = BloomFilter(self._data_size, self._error_rate)
+        return self._copy_param(new_filter)
+
+    def _copy_param(self, filter: 'BloomFilter') -> 'BloomFilter':
+        filter._bit_array = copy.deepcopy(self._bit_array)
+        filter._bit_num = self._bit_num
+        filter._hash_num = self._hash_num
+        filter._hash_seed = copy.deepcopy(self._hash_seed)
+        filter._data_count = self._data_count
+        return filter
+
+    @staticmethod
+    def _adjust_param(data_size: int, error_rate: float) -> tuple[int, int]:
+        """
+        :param data_size:
+        :param error_rate:
+        :return:
+
+        通过数据量和期望的误报率 计算出 位数组大小 和 哈希函数的数量
+        k为哈希函数个数    m为位数组大小
+        n为数据量          p为误报率
+        m = - (n * lnp) / (ln2)^2
+
+        k = (m / n) * ln2
+        """
+        p = error_rate
+        n = data_size
+        m = - (n * (math.log(p, math.e)) / (math.log(2, math.e)) ** 2)
+        k = m / n * math.log(2, math.e)
+        return int(m), int(k)
+
+    def __len__(self) -> int:
+        """"
+        返回现有数据容量
+        """
+        return self._data_count
+
+    def __contains__(self, key) -> bool:
+        return self._contains(key)
