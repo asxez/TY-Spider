@@ -2,15 +2,16 @@ from typing import Any
 
 from loguru import logger
 from pymongo import MongoClient
+from pymongo.collection import Collection
 
 from config import mongodb_host, mongodb_port
 
 
 class MongoDB:
     def __init__(self, db_name: str, col_name: str):
-        self.client = None
+        self.client: MongoClient | None = None
         self.db = None
-        self.col = None
+        self.col: Collection | None = None
         self.closed = False
         self.db_name = db_name
         self.col_name = col_name
