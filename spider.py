@@ -11,11 +11,27 @@ from bs4 import BeautifulSoup
 from loguru import logger
 from lxml import etree
 
-from config import engine_name_en, bing_api, wiki, bfs_depth, db_name, data_col_name, spider_check_memory
+from config import (
+    engine_name_en,
+    bing_api,
+    wiki,
+    bfs_depth,
+    db_name,
+    data_col_name,
+    spider_check_memory,
+    bloom_dataSize,
+    bloom_errorRate,
+)
 from database import MongoDB
 from log_lg import SpiderLog
 from mongodb import save_data
-from utils import Memory, Schedule, check_lang, ParserLink
+from utils import (
+    Memory,
+    Schedule,
+    check_lang,
+    ParserLink,
+    BloomFilter,
+)
 
 _headers = {
     'User-Agent': engine_name_en
@@ -215,8 +231,8 @@ def in_wiki(query: str) -> bool:
         logger.error(f'检测维基百科收录出现错误{e}')
 
 
-def _save_bfs_state(visited: set, queue: deque, file_name: str) -> None:
-    state_data = (visited, queue)
+def _save_bfs_state(queue: deque, file_name: str) -> None:
+    state_data = queue
     try:
         with open(f'./temp/{file_name}.pkl', 'wb') as f:
             pickle.dump(state_data, f)
@@ -224,20 +240,20 @@ def _save_bfs_state(visited: set, queue: deque, file_name: str) -> None:
         logger.error(f'保存pkl文件失败：{e}')
 
 
-def _load_bfs_state(file_name: str) -> tuple[Any, Any] | tuple[None, None]:
+def _load_bfs_state(file_name: str) -> deque | None:
     try:
         with open(f'./temp/{file_name}.pkl', 'rb') as f:
-            visited, queue = pickle.load(f)
-        if visited and queue:
-            return visited, queue
-        else:
-            return None, None
+            queue = pickle.load(f)
+        if queue:
+            return queue
+        return None
     except Exception as e:
-        logger.error(f'加载bfs状态时出错：{e}')
+        logger.error(f'加载queue状态时出错：{e}')
 
 
-def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
-    visited, queue = _load_bfs_state(file_name) or (set(), deque([(start, 0)]))
+def bfs(start: str, file_name, target_depth: int = 2) -> None:
+    visited = BloomFilter(bloom_dataSize, bloom_errorRate)
+    queue = _load_bfs_state(file_name) or deque([(start, 0)])
     robots_parser = RobotsParser(user_agent=engine_name_en)
     with MongoDB(db_name, data_col_name) as db:
         col = db.col
@@ -288,8 +304,8 @@ def bfs(start: str, file_name: str, target_depth: int = 2) -> None:
                     else:
                         data[0]['weight'] = (data[0]['weight'] + weight * 0.9) / 2
                     save_data(data, col)
-                _save_bfs_state(visited, queue, file_name)
-                time.sleep(random.uniform(1, 2))
+                _save_bfs_state(queue, file_name)
+                time.sleep(random.uniform(0.3, 0.9))
             else:
                 logger.warning(f'{url}不允许爬')
                 continue
@@ -299,7 +315,7 @@ if __name__ == '__main__':
     SpiderLog()
 
     processes = []
-    p2 = multiprocessing.Process(target=bfs, args=(wiki, "wiki", bfs_depth))
+    p2 = multiprocessing.Process(target=bfs, args=(wiki, 'wiki', bfs_depth))
     processes.append(p2)
     p2.start()
 
