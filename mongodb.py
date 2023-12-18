@@ -9,7 +9,7 @@ from utils import cost_time
 
 
 @cost_time
-def save_data(datas: list, col: Collection) -> None:
+def save_data(datas: list[dict], col: Collection) -> None:
     if len(datas) == 0:
         logger.info("保存数据时所接受的列表为空")
         return None
@@ -18,6 +18,9 @@ def save_data(datas: list, col: Collection) -> None:
 
 @cost_time
 def del_repeat(col: Collection, text: str, out: str) -> None:
+    """
+    text为需要去重的字段，out为写入的集合
+    """
     pipeline = [
         {
             "$group": {
@@ -39,24 +42,6 @@ def del_repeat(col: Collection, text: str, out: str) -> None:
 
 
 @cost_time
-def delete_keywords_and_description(
-        col: Collection,
-        description: str = "",
-        word: str = "",
-        title: str = ""
-) -> None:
-    query = {
-        "$and": [
-            {"description": {"$eq": description}},
-            {"keywords": {"$eq": word}},
-            {"title": {"$eq": title}}
-        ]
-    }
-    result = col.delete_many(query)
-    logger.info(f"删除了 {result.deleted_count} 条数据")
-
-
-@cost_time
 def search_data(text: str, col: Collection) -> Cursor[Mapping[str, Any]]:
     query = {
         "$or": [
@@ -70,7 +55,9 @@ def search_data(text: str, col: Collection) -> Cursor[Mapping[str, Any]]:
 
 
 @cost_time
-def find_all(col: Collection) -> Cursor[Mapping[str, Any]]:
+def find_all(col: Collection, projection: dict | None = None) -> Cursor[Mapping[str, Any]]:
+    if projection:
+        return col.find(projection=projection)
     return col.find()
 
 

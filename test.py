@@ -1,5 +1,4 @@
-from utils import *
-
+from manage import Task
 # a = [
 #     {
 #         'title': '中国教育学会',
@@ -79,14 +78,29 @@ from utils import *
 # }
 # Schedule().schedule_cron([task2])
 
-def t():
-    return 1
+# def t():
+#     return 1
+#
+#
+# a = Schedule()
+# a.schedule_interval([{
+#     'function': t,
+#     'seconds': 5
+# }], 0.1)
+# print(a.results)
+# print(666)
+# with MongoDB(db_name, data_col_name) as db:
+#     data = list(find_all(db.col, {
+#         '_id': 0,
+#         'keywords': 0,
+#         'description': 0,
+#         'netloc': 0,
+#         'weight': 0,
+#         'title': 0
+#     }))
+#     print(data)
 
-
-a = Schedule()
-a.schedule_interval([{
-    'function': t,
-    'seconds': 5
-}], 0.1)
-print(a.results)
-print(666)
+# with MongoDB(db_name, data_col_name) as db:
+#     del_repeat(db.col, 'href', data_col_name)
+task = Task()
+task.back_link()
