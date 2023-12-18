@@ -2,14 +2,17 @@ from collections import defaultdict
 from time import sleep
 from typing import Any, Union
 
+import requests
+from bs4 import BeautifulSoup
 from jieba import lcut_for_search
+from loguru import logger
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from config import stop_words, db_name, key_col_name
+from config import stop_words, db_name, key_col_name, engine_name_en
 from database import MongoDB
 from mongodb import save_data
-from utils import cost_time
+from utils import cost_time, is_url
 
 
 class ReverseIndex:
@@ -52,16 +55,44 @@ class ReverseIndex:
         result = set()
         for word in query_words:
             if word in self.index:
-                result.update(self.index[word])  #合并集合
+                result.update(self.index[word])  # 合并集合
         return list(result)
 
     def get_index(self) -> defaultdict:
         return self.index
 
 
-class ReverseLink:
+class BackLink:
     def __init__(self):
-        pass
+        self.map: defaultdict[str, set[str]] = defaultdict()
+
+    @staticmethod
+    def requests(link: str) -> list | None:
+        try:
+            res = requests.get(link, headers={'user-agent': engine_name_en}, timeout=4)
+            res.encoding = 'utf-8'
+            if res.status_code == 200:
+                soup = BeautifulSoup(res.text, 'html.parser')
+                hrefs = [a['href'] for a in soup.find_all('a', href=True) if is_url(a['href'])]
+                return hrefs
+        except requests.exceptions.RequestException as e:
+            logger.warning(f'获取反链时{e}')
+            return None
+
+    def add(self, source: str, target: str) -> None:
+        """
+        source为值，这里源链接的域名，target为源链接所引用的url。
+        """
+        if target in self.map:
+            self.map[target].add(source)
+        else:
+            self.map[target] = set()
+            self.map[target].add(source)
+
+    def __len__(self, key: str) -> int | None:
+        if key in self.map:
+            return len(self.map[key])
+        logger.warning(f'无此键：{key}')
 
 
 def TFIDF(texts: list, querys: list) -> Union[Any, None]:
