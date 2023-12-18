@@ -4,6 +4,7 @@ import math
 import pickle
 import sys
 import time
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date
 from time import perf_counter
@@ -44,6 +45,12 @@ def cost_time(func: Callable) -> Callable:
     return fun
 
 
+def is_url(query: str) -> bool:
+    if query.startswith('http'):
+        return True
+    return False
+
+
 def check_lang(s: str) -> tuple[str, float]:
     global _lang_model
     if not _lang_model:
@@ -68,7 +75,7 @@ class Schedule:
     """
 
     def __init__(self):
-        self.results = {}
+        self.results = defaultdict()
 
     @staticmethod
     def _logging(function: Callable) -> Callable:

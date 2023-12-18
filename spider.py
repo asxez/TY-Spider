@@ -15,7 +15,6 @@ from config import (
     engine_name_en,
     bing_api,
     wiki,
-    bfs_depth,
     db_name,
     data_col_name,
     spider_check_memory,
@@ -23,7 +22,6 @@ from config import (
     bloom_errorRate,
 )
 from database import MongoDB
-from log_lg import SpiderLog
 from mongodb import save_data
 from utils import (
     Memory,
@@ -309,19 +307,3 @@ def bfs(start: str, file_name, target_depth: int = 2) -> None:
             else:
                 logger.warning(f'{url}不允许爬')
                 continue
-
-
-if __name__ == '__main__':
-    SpiderLog()
-
-    processes = []
-    p2 = multiprocessing.Process(target=bfs, args=(wiki, 'wiki', bfs_depth))
-    processes.append(p2)
-    p2.start()
-
-    p3 = multiprocessing.Process(target=bfs, args=("https://www.asxe.vip", 'asxe', bfs_depth))
-    processes.append(p3)
-    p3.start()
-
-    for p in processes:
-        p.join()
