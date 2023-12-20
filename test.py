@@ -1,4 +1,7 @@
-from manage import Task
+from database import *
+from manage import *
+from mongodb import *
+
 # a = [
 #     {
 #         'title': '中国教育学会',
@@ -100,7 +103,7 @@ from manage import Task
 #     }))
 #     print(data)
 
-# with MongoDB(db_name, data_col_name) as db:
-#     del_repeat(db.col, 'href', data_col_name)
-task = Task()
-task.back_link()
+with MongoDB(db_name, data_col_name) as db:
+    del_repeat(db.col, 'href', data_col_name)
+# task = Task()
+# task.back_link()
