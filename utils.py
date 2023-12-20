@@ -132,6 +132,10 @@ class Schedule:
 
 
 class Memory:
+    """
+    检测内存使用量
+    """
+
     @staticmethod
     def get_memory_info() -> dict | bool:
         if sys.platform == 'win32':
@@ -181,6 +185,9 @@ class ParserLink:
 
 
 class BloomFilter:
+    """
+    布隆过滤器
+    """
 
     def __init__(self, data_size: int, error_rate: float = 0.001):
         """

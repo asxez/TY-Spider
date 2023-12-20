@@ -16,6 +16,10 @@ from utils import cost_time, is_url
 
 
 class ReverseIndex:
+    """
+    反向索引构建器
+    """
+
     def __init__(self):
         # {'key': [index]}
         self.index = defaultdict()
@@ -63,6 +67,10 @@ class ReverseIndex:
 
 
 class BackLink:
+    """
+    反向链接整理器
+    """
+
     def __init__(self):
         self.map: defaultdict[str, set[str]] = defaultdict()
 
