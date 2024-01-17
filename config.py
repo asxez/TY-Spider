@@ -7,7 +7,6 @@ engine_name_en = 'TY-Spider'
 
 bfs_depth: int = 50  # bfs抓取深度
 wiki: str = 'https://zh.wikipedia.org'
-bing_api: str = 'https://www4.bing.com/search?q={q}'
 
 mongodb_host: str = '127.0.0.1'
 mongodb_port: int = 27017
