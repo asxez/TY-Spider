@@ -1,7 +1,7 @@
 from typing import Any, Mapping
 
 from loguru import logger
-from pymongo import ASCENDING
+from pymongo import ASCENDING, DESCENDING
 from pymongo.collection import Collection
 from pymongo.cursor import Cursor
 
@@ -50,7 +50,7 @@ def search_data(text: str, col: Collection) -> Cursor[Mapping[str, Any]]:
             {"title": {"$regex": text, "$options": "i"}}
         ]
     }
-    results = col.find(query, projection={"_id": 0})
+    results = col.find(query, projection={"_id": 0}).sort('weight', DESCENDING)  # 降序
     return results
 
 
@@ -74,3 +74,9 @@ def update(col: Collection, query: dict[str, str], new_value: dict[dict[str, str
         logger.info('数据更新成功')
     else:
         logger.warning('数据更新失败')
+
+
+@cost_time
+def search_key(key: str, col: Collection) -> Cursor[Mapping[str, Any]]:
+    results = col.find({'key': key}, projection={"_id": 0, "key": 0})
+    return results
