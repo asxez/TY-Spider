@@ -1,3 +1,5 @@
+from typing import Any
+
 import uvicorn
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -6,14 +8,37 @@ from fastapi.templating import Jinja2Templates
 from jieba import lcut_for_search
 
 from config import fastapi_port, db_name, data_col_name, key_col_name
-from data_process import remove_stop_words
+from data_process import remove_stop_words, TFIDF
 from database import MongoDB
 from log_lg import ServerLog
-from mongodb import creat_index, search_key, find_all
+from mongodb import creat_index, search_key, find_all, search_data
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+
+def get_data_use_key(list_question: list[str]) -> list[dict[str, Any]]:
+    indexes = []
+
+    with MongoDB(db_name, key_col_name) as key_db:
+        key_col = key_db.col
+        indexes = [result['value'] for question in list_question for result in search_key(question, key_col)]
+    indexes = list(set(sum(indexes, [])))
+
+    with MongoDB(db_name, data_col_name) as db_data:
+        col_data = db_data.col
+        all_data = list(find_all(col_data, projection={'_id': 0}))
+
+    answer = [all_data[index] for index in indexes]
+    return answer
+
+
+def get_data_use_search(list_question: list[str]) -> list[dict[str, Any]]:
+    with MongoDB(db_name, data_col_name) as data_db:
+        data_col = data_db.col
+        temp_results = [result for question in list_question for result in search_data(question, data_col)]
+    return temp_results
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -34,30 +59,28 @@ async def search(q: str = Form()):
             "response": "未输入内容"
         }
 
-    indexes = []
     list_question = lcut_for_search(q)
     list_question = remove_stop_words(list_question)
 
-    with MongoDB(db_name, key_col_name) as key_db:
-        key_col = key_db.col
-        for question in list_question:
-            results = search_key(question, key_col)
-            for result in results:
-                indexes.append(result['value'])
-    indexes = list(set(sum(indexes, [])))
+    key_ans = get_data_use_key(list_question)
+    search_ans = get_data_use_search(list_question)
 
-    with MongoDB(db_name, data_col_name) as db_data:
-        col_data = db_data.col
-        all_data = list(find_all(col_data, projection={'_id': 0}))
+    all_ans = key_ans.copy()
+    for item in search_ans:
+        if item not in all_ans:
+            all_ans.append(item)
 
-    answer = []
-    for index in indexes:
-        answer.append(all_data[index])
+    texts = [str(doc["title"]) + " " + str(doc["description"]) + " " + str(doc["keywords"]) for doc in all_ans]
+    ranked_indices = TFIDF(texts, list_question)
+    len_ranked_indices = len(ranked_indices)
 
-    sort_ans = sorted(answer, key=lambda x: x['weight'], reverse=True)
+    for rank, index in enumerate(ranked_indices):
+        all_ans[index]['weight'] = all_ans[index]['weight'] + (len_ranked_indices - rank) * 0.09
+
+    ans_sorted = sorted(all_ans, key=lambda x: x['weight'], reverse=True)
     return {
         'status': 1,
-        'response': str(sort_ans)
+        'response': str(ans_sorted)
     }
 
 
