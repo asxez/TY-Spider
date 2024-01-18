@@ -42,7 +42,6 @@ button.addEventListener('click', () => {
                 let data = arr.substring(1) + "}";
                 if (data.includes("title") && data.includes("href")) {
                     const word = /'keywords':\s*'([^']+)'/i.exec(data);
-                    const description = /'description':\s*'([^']+)'/i.exec(data);
                     const href = /'href':\s*'([^']+)'/i.exec(data);
                     const title = /'title':\s*'([^']+)'/i.exec(data);
                     if (title && href && word) {
@@ -58,12 +57,11 @@ button.addEventListener('click', () => {
                     }
                 }
             }
-            // console.log(contentArray);
-            window.localStorage.setItem("content", JSON.stringify(contentArray.slice(0, 200)));
-            window.localStorage.setItem("search", search.value);
-            window.open("http://localhost:1314/show/")
+            window.sessionStorage.setItem("content", JSON.stringify(contentArray.slice(0, 200)));
+            window.sessionStorage.setItem("search", search.value);
+            window.open("http://127.0.0.1:1314/show/")
         }
     }
-    xhr.open('POST', 'http://localhost:1314/search/', true)
+    xhr.open('POST', 'http://127.0.0.1:1314/search/', true)
     xhr.send(fd);
 });

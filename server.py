@@ -2,6 +2,7 @@ from typing import Any
 
 import uvicorn
 from fastapi import FastAPI, Form, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -13,14 +14,18 @@ from database import MongoDB
 from log_lg import ServerLog
 from mongodb import creat_index, search_key, find_all, search_data
 
+origins = [
+    "http://localhost:1314",
+    "http://127.0.0.1:1314",
+]
+
 app = FastAPI()
+app.add_middleware(CORSMiddleware, allow_origins=origins)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
 def get_data_use_key(list_question: list[str]) -> list[dict[str, Any]]:
-    indexes = []
-
     with MongoDB(db_name, key_col_name) as key_db:
         key_col = key_db.col
         indexes = [result['value'] for question in list_question for result in search_key(question, key_col)]
@@ -71,7 +76,13 @@ async def search(q: str = Form()):
             all_ans.append(item)
 
     texts = [str(doc["title"]) + " " + str(doc["description"]) + " " + str(doc["keywords"]) for doc in all_ans]
-    ranked_indices = TFIDF(texts, list_question)
+    try:
+        ranked_indices = TFIDF(texts, list_question)
+    except ValueError:
+        return {
+            'status': 3,
+            'response': '无效'
+        }
     len_ranked_indices = len(ranked_indices)
 
     for rank, index in enumerate(ranked_indices):
