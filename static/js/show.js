@@ -1,6 +1,6 @@
 function init() {
-    let contents = JSON.parse(window.localStorage.getItem("content"));
-    let DTitle = window.localStorage.getItem("search");
+    let contents = JSON.parse(window.sessionStorage.getItem("content"));
+    let DTitle = window.sessionStorage.getItem("search");
     let left = document.getElementById("left");
     document.title = DTitle + " - 天眼搜索";
 
@@ -44,7 +44,7 @@ function init() {
 }
 
 function makePageButton() {
-    let contents = JSON.parse(window.localStorage.getItem("content"));
+    let contents = JSON.parse(window.sessionStorage.getItem("content"));
     let len = contents.length;
     let page = len / 10;
     if (len / 10 > 10) {
@@ -71,7 +71,7 @@ window.addEventListener("load", () => {
 });
 
 function gotoPage(pageStart, pageEnd) {
-    let contents = JSON.parse(window.localStorage.getItem("content"));
+    let contents = JSON.parse(window.sessionStorage.getItem("content"));
     let left = document.getElementById("left");
     left.innerHTML = "";
 
