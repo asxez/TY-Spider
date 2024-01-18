@@ -25,7 +25,7 @@ class ReverseIndex:
         self.index = defaultdict()
 
     @cost_time
-    def build_index(self, doc: list, rank: int) -> bool:
+    def build_index(self, doc: list[dict[str, Any]], rank: int) -> bool:
         if len(doc) < 20:
             return False
         words = []
@@ -103,7 +103,7 @@ class BackLink:
         logger.warning(f'无此键：{key}')
 
 
-def TFIDF(texts: list, querys: list) -> Union[Any, None]:
+def TFIDF(texts: list[str], querys: list[str]) -> Union[list[int], None]:
     vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform(texts)
 
@@ -116,9 +116,9 @@ def TFIDF(texts: list, querys: list) -> Union[Any, None]:
 
     combined_scores = sum(query_similarity_scores) / len(querys)  # 综合所有查询的分数，计算平均分数
     ranked_indices = combined_scores.argsort()[0][::-1]  # 从高到低排列
-    return ranked_indices
+    return ranked_indices.tolist()
 
 
-def remove_stop_words(ori_list: list) -> list[str]:
+def remove_stop_words(ori_list: list[Any]) -> list[str]:
     words = set(stop_words)
     return [item for item in ori_list if item not in words]
