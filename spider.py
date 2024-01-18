@@ -9,11 +9,9 @@ from urllib.parse import urljoin, urlparse
 import requests
 from bs4 import BeautifulSoup
 from loguru import logger
-from lxml import etree
 
 from config import (
     engine_name_en,
-    bing_api,
     wiki,
     db_name,
     data_col_name,
@@ -86,77 +84,6 @@ class RobotsParser:
                 if url.startswith(urljoin(base_url, path)):
                     return True
         return True
-
-
-def get_bing_response(question: Any) -> str:
-    try:
-        response = requests.get(bing_api.format(q=question), headers=_headers, timeout=4).text
-    except Exception as e:
-        logger.error(f'获取必应响应出错：{e}')
-    else:
-        return response
-
-
-def parse_bing_response(text: str) -> list[dict[str, float | str | Any]]:
-    datas = []
-    doc = etree.HTML(text)
-    elements = doc.xpath('//*[@id="b_results"]/li')
-    for element in elements:
-        try:
-            href = element.xpath('./h2/a/@href')[0]
-            description = element.xpath('./div[2]/p/text()')[0]
-            title = element.xpath('./h2/a/text() | ./h2/a/strong/text()')
-            title = "".join(title)
-            lang, weight = check_lang(title + " " + description)
-            if lang == 'zh':
-                datas.append({
-                    "title": title,
-                    "description": description,
-                    "href": href,
-                    "keywords": "",
-                    "netloc": ParserLink(href).netloc,
-                    "weight": 0.5
-                })
-                return datas
-            datas.append({
-                "title": title,
-                "description": description,
-                "href": href,
-                "keywords": "",
-                "netloc": ParserLink(href).netloc,
-                "weight": weight if weight > 0.5 else 1 - weight
-            })
-        except IndexError as e:
-            logger.error(f'解析必应响应出错:{e}')
-    return datas
-
-
-def parse_page_url(text: str) -> dict[str, str]:
-    ph = {}
-    doc = etree.HTML(text)
-    elements = doc.xpath('//*[@id="b_results"]/li/nav/ul/li')
-    for element in elements:
-        try:
-            page = element.xpath('./a/@aria-label')[0]
-            href = element.xpath('./a/@href')[0]
-            href = "https://www4.bing.com" + href
-            ph[page] = href
-        except Exception as e:  # 可能存在多种类型的错误
-            logger.error(f'解析页面链接出错：{e}')
-    return ph
-
-
-def get_other_page_response(urls: dict) -> list[list[dict]]:
-    datas = []
-    for page, url in urls.items():
-        try:
-            data = parse_bing_response(requests.get(url, headers=_headers, timeout=3).text)
-        except Exception as e:
-            logger.error(f'获取其他页出错：{e}')
-        else:
-            logger.info(f'获取 {page} 响应成功')
-            datas.append(data)
-    return datas
 
 
 def get_keywords_and_description(url: str) -> Union[list[dict[str, Any]], None]:
